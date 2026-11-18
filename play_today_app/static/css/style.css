@@ -1,0 +1,128 @@
+@font-face {
+    font-family: "Montserrat";
+    src: local("Montserrat"),
+      url(../fonts/Montserrat/Montserrat-VariableFont_wght.ttf);
+}
+
+body {
+    font-family: Montserrat, Arial, sans-serif;
+    background-color: #F9F9F9;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    color: #272727;
+}
+
+p, a {
+    font-size: 18px;
+}
+
+a {
+    color: #272727;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #3e9760;
+}
+
+/* Стили для навигации */
+.nav-pills a.nav-link.active {
+    background-color: #3e9760;
+    color: white !important;
+    border-radius: 20px;
+}
+
+.nav-link {
+    color: #272727;
+}
+
+.nav-link:hover {
+    color: #3e9760;
+}
+
+h1 {
+    font-size: 38px;
+    font-weight: 700;
+    color: #3e9760;
+}
+
+/* Формы */
+.form-control-lg, .form-select-lg, .form-control {
+    border-radius: 15px;
+    border: 1px solid #CED4DA;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #FFF;
+    border-color: #3e9760;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(62, 151, 96, 0.25);
+}
+
+textarea {
+    resize: none;
+}
+
+/* ========================================= */
+/* КНОПКИ BOOTSTRAP */
+/* ========================================= */
+
+.btn-success {
+    background-color: #3e9760;
+    border-color: #3e9760;
+    border-radius: 20px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover {
+    background-color: #327a4e;
+    border-color: #327a4e;
+    transform: translateY(-1px);
+}
+
+.btn-outline-success {
+    color: #3e9760;
+    border-color: #3e9760;
+    border-radius: 20px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-success:hover {
+    background-color: #3e9760;
+    color: white;
+}
+
+/* Бейджи (характеристики игры) */
+.badge {
+    border-radius: 10px;
+    padding: 0.5em 0.8em;
+    font-weight: 500;
+}
+
+/* Карточки отзывов и игр */
+.card {
+    border-radius: 15px;
+    background-color: #FFF;
+}
+
+p.small {
+    font-size: 16px;
+    color: #8E8E8E;
+}
+
+/* Мобильная адаптивность */
+@media (max-width: 600px) {
+    p {
+        text-align: justify;
+    }
+    h1 {
+        text-align: center;
+        font-size: 32px;
+    }
+    .navbar-brand {
+        margin: 0 auto;
+    }
+}

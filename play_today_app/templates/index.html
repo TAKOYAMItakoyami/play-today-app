@@ -1,0 +1,84 @@
+{% extends "base.html" %} 
+
+{% block title %}Играем в {{ boardgame.name }}{% endblock %} 
+
+{% block content %}
+<section class="container my-4">
+  {% if boardgame %}
+    <div class="row">
+      <!-- Левая часть: Карточка игры -->
+      <div class="col-12 col-lg-7 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+          <div class="card-body">
+            <h1 class="card-title text-success">{{ boardgame.name }}</h1>
+            <h3 class="text-warning mb-3">⭐ {{ boardgame.average_rating }} / 10</h3>
+
+            <p class="lead">{{ boardgame.description }}</p>
+
+            <!-- Характеристики игры -->
+            <div class="d-flex flex-wrap gap-2 mb-4">
+              <span class="badge bg-primary">🐾 {{ boardgame.min_players }}-{{ boardgame.max_players }} игроков</span>
+              <span class="badge bg-secondary">🕑 {{ boardgame.playtime_minutes }} мин.</span>
+              <span class="badge bg-danger">⚠️ {{ boardgame.min_age }}+</span>
+              {% if boardgame.is_available %}
+                <span class="badge bg-success">🟢 Доступна для игр</span>
+              {% else %}
+                <span class="badge bg-dark">🔴 Пока недоступна для игр</span>
+              {% endif %}
+            </div>
+
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('index') }}" class="btn btn-outline-success">🎲 Другая игра</a>
+                <a href="{{ url_for('add_review') }}" class="btn btn-success">💬 Оставить отзыв</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Правая часть: Иллюстрация -->
+      <div class="col-12 col-lg-5 mb-4">
+        <img class="img-fluid mx-auto d-block rounded shadow-sm" src="{{ url_for('static', filename='img/illustration.png') }}" alt="Настольные игры" />
+      </div>
+    </div>
+
+    <!-- Секция отзывов -->
+    <div class="row mt-4">
+      <div class="col-12 col-lg-9">
+        <h3 class="mb-3">Отзывы игроков ({{ reviews|length }})</h3>
+
+        {% if reviews %}
+          {% for review in reviews %}
+            <div class="card mb-3 shadow-sm border-0">
+              <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h5 class="card-title mb-0">{{ review.author }}</h5>
+                  <span class="badge bg-warning text-dark fs-6">⭐ {{ review.rating }}/10</span>
+                </div>
+                <small class="text-muted">{{ review.timestamp.strftime('%d.%m.%Y в %H:%M') }}</small>
+                <p class="card-text mt-2">{{ review.text }}</p>
+                
+                {% if review.images %}
+                  <div class="d-flex flex-wrap gap-2 mt-3">
+                    {% for image_url in review.images %}
+                      <img class="img-thumbnail" src="{{ image_url }}" style="max-height: 120px;" alt="Фото к отзыву">
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="alert alert-info">У этой игры пока нет отзывов. Станьте первым!</div>
+        {% endif %}
+      </div>
+    </div>
+
+  {% else %}
+    <!-- Если игр в базе нет -->
+    <div class="text-center my-5">
+      <h1 class="display-4">Кафе пустынно...<br>Где-то на фоне виднеется перекати-поле...</h1>
+      <p class="lead">Скоро здесь появятся настольные игры!</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

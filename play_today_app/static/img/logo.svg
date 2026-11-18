@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="100" height="100">
+  <!-- Основной корпус (коробка) -->
+  <rect x="120" y="360" width="720" height="520" rx="70" fill="none" stroke="#409D61" stroke-width="45" />
+
+  <!-- Крышка хлопушки (опущена и лежит почти ровно) -->
+  <g transform="rotate(-5, 540, 290)">
+    <!-- Рамка крышки -->
+    <rect x="180" y="220" width="720" height="140" rx="40" fill="none" stroke="#409D61" stroke-width="40" />
+
+    <!-- Зеленый пунктир внутри крышки -->
+    <g stroke="#409D61" stroke-width="25" stroke-linecap="round">
+      <line x1="240" y1="295" x2="290" y2="295" />
+      <line x1="330" y1="295" x2="380" y2="295" />
+      <line x1="420" y1="295" x2="470" y2="295" />
+      <line x1="510" y1="295" x2="560" y2="295" />
+      <line x1="600" y1="295" x2="650" y2="295" />
+      <line x1="690" y1="295" x2="740" y2="295" />
+      <line x1="780" y1="295" x2="830" y2="295" />
+    </g>
+  </g>
+
+  <!-- Левый кубик (3 точки) -->
+  <g transform="translate(340, 650) rotate(-15)">
+    <rect x="-85" y="-85" width="170" height="170" rx="35" fill="none" stroke="#409D61" stroke-width="40" />
+    <circle cx="-35" cy="-35" r="15" fill="#409D61" />
+    <circle cx="0" cy="0" r="15" fill="#409D61" />
+    <circle cx="35" cy="35" r="15" fill="#409D61" />
+  </g>
+
+  <!-- Правый кубик (4 точки) -->
+  <g transform="translate(620, 650) rotate(15)">
+    <rect x="-85" y="-85" width="170" height="170" rx="35" fill="none" stroke="#409D61" stroke-width="40" />
+    <circle cx="-35" cy="-35" r="15" fill="#409D61" />
+    <circle cx="35" cy="-35" r="15" fill="#409D61" />
+    <circle cx="-35" cy="35" r="15" fill="#409D61" />
+    <circle cx="35" cy="35" r="15" fill="#409D61" />
+  </g>
+</svg>
