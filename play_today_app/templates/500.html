@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block title %}500. Что-то пошло не так!{% endblock %}
+
+{% block content %}
+<section class="container my-5">
+  <div class="row align-items-center">
+
+    <div class="col-12 col-lg-7 my-4 text-center text-lg-start">
+      <h1 class="mb-4" style="font-size: 5rem; color: #3e9760;">500</h1>
+      <h2 class="mb-3">Что-то пошло не так!</h2>
+      <p class="lead mb-4">
+        Возможно, на сервере произошёл сбой или проводятся кратковременные
+        технические работы. Котик-сисадмин уже бежит всё чинить.
+        Попробуйте обновить страницу сейчас или зайти чуть позже.
+      </p>
+
+      <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center justify-content-lg-start">
+        <a href="{{ url_for('index') }}" class="btn btn-success btn-lg">
+          🎲 На главную
+        </a>
+        <a href="javascript:location.reload();" class="btn btn-outline-success btn-lg">
+          🔄 Обновить страницу
+        </a>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-5 my-4">
+      <img class="img-fluid mx-auto d-block" src="{{ url_for('static', filename='img/500.png') }}" alt="500 Ошибка сервера" />
+    </div>
+
+  </div>
+</section>
+{% endblock %}
