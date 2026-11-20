@@ -1,9 +1,11 @@
+import os
+
 import csv
 import click
 from flask.cli import with_appcontext
 
 from . import app, db
-from .models import Boardgame
+from .models import Boardgame, User
 
 
 @app.cli.command('load_boardgames')
@@ -33,7 +35,9 @@ def load_boardgames_command(filename):
                     max_players=int(row['max_players']),
                     min_age=int(row['min_age']),
                     playtime_minutes=int(row['playtime_minutes']),
-                    is_available=(row['is_available'].strip().lower() == 'true')
+                    is_available=(
+                        row['is_available'].strip().lower() == 'true'
+                    )
                 )
                 db.session.add(game)
                 counter += 1
@@ -46,3 +50,24 @@ def load_boardgames_command(filename):
     except Exception as e:
         db.session.rollback()
         click.echo(f"Произошла ошибка при загрузке: {e}")
+
+
+@app.cli.command('create_first_superuser')
+@with_appcontext
+def create_admin_command():
+    """Создает администратора (суперюзера) на основе данных из .env."""
+    # Проверка: есть ли уже хоть один суперюзер (администратор)
+    existing_admin = User.query.filter_by(is_admin=True).first()
+    if existing_admin:
+        click.echo(f"Администратор уже существует: {existing_admin.username}")
+        return
+
+    username = os.getenv('ADMIN_USERNAME', 'admin')
+    password = os.getenv('ADMIN_PASSWORD', 'admin123')
+
+    admin = User(username=username, is_admin=True)
+    admin.set_password(password)
+    db.session.add(admin)
+    db.session.commit()
+
+    click.echo(f"Суперпользователь '{username}' успешно создан!")

@@ -5,8 +5,10 @@
 {% block content %}
 <section class="container my-5">
   <div class="row">
-    <h1 class="mb-4">Новый отзыв на игру</h1>
-    
+    <h1 class="mb-4">
+      {% if is_edit %}Редактирование отзыва{% else %}Новый отзыв на игру{% endif %}
+    </h1>
+
     <div class="col-12 col-lg-7">
       <form method="POST" novalidate enctype="multipart/form-data" class="bg-white p-4 rounded shadow-sm">
         {{ form.csrf_token }}
@@ -18,17 +20,6 @@
           {% if form.boardgame_id.errors %}
             <p class="text-danger small mt-1">
               {% for error in form.boardgame_id.errors %} {{ error }} {% endfor %}
-            </p>
-          {% endif %}
-        </div>
-
-        <!-- Автор -->
-        <div class="mb-3">
-          {{ form.author.label(class="form-label fw-bold") }}
-          {{ form.author(class="form-control form-control-lg", placeholder="Ваше имя") }}
-          {% if form.author.errors %}
-            <p class="text-danger small mt-1">
-              {% for error in form.author.errors %} {{ error }} {% endfor %}
             </p>
           {% endif %}
         </div>
@@ -73,7 +64,11 @@
           {% endif %}
         </div>
 
-        {{ form.submit(class="btn btn-success btn-lg w-100") }}
+        {% if is_edit %}
+          <button type="submit" class="btn btn-success btn-lg w-100">Сохранить изменения</button>
+        {% else %}
+          {{ form.submit(class="btn btn-success btn-lg w-100") }}
+        {% endif %}
       </form>
     </div>
     

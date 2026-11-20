@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: 4003eb71def6
+Revision ID: 056d6826035e
 Revises: 
-Create Date: 2026-11-17 18:57:51.889804
+Create Date: 2026-11-20 17:33:43.400015
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '4003eb71def6'
+revision = '056d6826035e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,16 +30,25 @@ def upgrade():
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
+    op.create_table('user',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('username', sa.String(length=64), nullable=False),
+    sa.Column('password_hash', sa.String(length=256), nullable=False),
+    sa.Column('is_admin', sa.Boolean(), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('username')
+    )
     op.create_table('review',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('text', sa.Text(), nullable=False),
     sa.Column('rating', sa.Integer(), nullable=False),
-    sa.Column('author', sa.String(length=64), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('images', sa.JSON(), nullable=True),
     sa.Column('timestamp', sa.DateTime(timezone=True), nullable=True),
     sa.Column('boardgame_id', sa.Integer(), nullable=False),
     sa.CheckConstraint('rating >= 1 AND rating <= 10', name='check_rating_range'),
     sa.ForeignKeyConstraint(['boardgame_id'], ['boardgame.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('review', schema=None) as batch_op:
@@ -54,5 +63,6 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_review_timestamp'))
 
     op.drop_table('review')
+    op.drop_table('user')
     op.drop_table('boardgame')
     # ### end Alembic commands ###

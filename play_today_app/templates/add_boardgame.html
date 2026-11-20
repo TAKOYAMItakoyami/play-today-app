@@ -1,0 +1,62 @@
+{% extends "base.html" %} 
+
+{% block title %} Добавить настольную игру {% endblock %} 
+
+{% block content %}
+<section class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+      <h1 class="mb-4">Добавление новой настольной игры</h1>
+      
+      <form method="POST" novalidate class="bg-white p-4 rounded shadow-sm">
+        {{ form.csrf_token }}
+        
+        <div class="mb-3">
+          {{ form.name.label(class="form-label fw-bold") }}
+          {{ form.name(class="form-control", placeholder="Например: Каркассон") }}
+          {% if form.name.errors %}
+            <p class="text-danger small mt-1">{% for error in form.name.errors %} {{ error }} {% endfor %}</p>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          {{ form.description.label(class="form-label fw-bold") }}
+          {{ form.description(class="form-control", rows="3", placeholder="О чем эта игра?") }}
+          {% if form.description.errors %}
+            <p class="text-danger small mt-1">{% for error in form.description.errors %} {{ error }} {% endfor %}</p>
+          {% endif %}
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            {{ form.min_players.label(class="form-label fw-bold") }}
+            {{ form.min_players(class="form-control", type="number") }}
+          </div>
+          <div class="col-md-6">
+            {{ form.max_players.label(class="form-label fw-bold") }}
+            {{ form.max_players(class="form-control", type="number") }}
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            {{ form.min_age.label(class="form-label fw-bold") }}
+            {{ form.min_age(class="form-control", type="number") }}
+          </div>
+          <div class="col-md-6">
+            {{ form.playtime_minutes.label(class="form-label fw-bold") }}
+            {{ form.playtime_minutes(class="form-control", type="number") }}
+          </div>
+        </div>
+
+        <div class="mb-4 form-check">
+          {{ form.is_available(class="form-check-input") }}
+          {{ form.is_available.label(class="form-check-label fw-bold") }}
+        </div>
+
+        {{ form.submit(class="btn btn-success btn-lg w-100") }}
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

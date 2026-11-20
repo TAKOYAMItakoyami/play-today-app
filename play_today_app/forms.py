@@ -1,13 +1,43 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, MultipleFileField
 from wtforms import (
+    BooleanField,
+    IntegerField,
+    PasswordField,
     RadioField,
     SelectField,
     StringField,
     SubmitField,
     TextAreaField
 )
-from wtforms.validators import DataRequired, Length
+from wtforms.validators import DataRequired, Length, EqualTo, NumberRange
+
+
+class RegisterForm(FlaskForm):
+    """Форма регистрации нового пользователя."""
+    username = StringField(
+        'Ваше имя (логин)',
+        validators=[DataRequired(message='Обязательное поле'), Length(3, 64)]
+    )
+    password = PasswordField(
+        'Пароль',
+        validators=[DataRequired(message='Обязательное поле'), Length(min=6)]
+    )
+    password_confirm = PasswordField(
+        'Повторите пароль',
+        validators=[
+            DataRequired(),
+            EqualTo('password', message='Пароли должны совпадать')
+        ]
+    )
+    submit = SubmitField('Зарегистрироваться')
+
+
+class LoginForm(FlaskForm):
+    """Форма входа."""
+    username = StringField('Ваше имя (логин)', validators=[DataRequired()])
+    password = PasswordField('Пароль', validators=[DataRequired()])
+    submit = SubmitField('Войти')
 
 
 class ReviewForm(FlaskForm):
@@ -18,14 +48,6 @@ class ReviewForm(FlaskForm):
         'Выберите настольную игру',
         coerce=int,  # Превращает строку из HTML в число (int) для базы данных
         validators=[DataRequired(message='Выберите игру')]
-    )
-
-    author = StringField(
-        'Ваше имя',
-        validators=[
-            DataRequired(message='Обязательное поле'),
-            Length(1, 64, message='Имя не должно превышать 64 символа')
-        ]
     )
 
     rating = RadioField(
@@ -57,3 +79,33 @@ class ReviewForm(FlaskForm):
     )
 
     submit = SubmitField('Опубликовать отзыв')
+
+
+class BoardgameForm(FlaskForm):
+    """Форма для добавления новой настольной игры (только для админа)."""
+    name = StringField(
+        'Название игры',
+        validators=[DataRequired(message='Обязательное поле'), Length(1, 128)]
+    )
+    description = TextAreaField(
+        'Описание',
+        validators=[DataRequired(message='Обязательное поле')]
+    )
+    min_players = IntegerField(
+        'Мин. игроков',
+        validators=[DataRequired(), NumberRange(min=1)]
+    )
+    max_players = IntegerField(
+        'Макс. игроков',
+        validators=[DataRequired(), NumberRange(min=1)]
+    )
+    min_age = IntegerField(
+        'Мин. возраст',
+        validators=[DataRequired(), NumberRange(min=0)]
+    )
+    playtime_minutes = IntegerField(
+        'Время партии (мин)',
+        validators=[DataRequired(), NumberRange(min=1)]
+    )
+    is_available = BooleanField('Доступна для игр', default=True)
+    submit = SubmitField('Добавить игру')

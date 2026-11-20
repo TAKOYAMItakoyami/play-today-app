@@ -4,7 +4,6 @@
 
       <a class="navbar-brand d-flex align-items-center gap-2 m-0" href="{{ url_for('index') }}">
         <img src="{{ url_for('static', filename='img/logo.svg') }}" height="50" alt="Play Today Logo" />
-
         <span class="fw-bold fs-3 text-success" style="color: #3e9760 !important;">Play Today</span>
       </a>
 
@@ -12,9 +11,25 @@
         <a href="{{ url_for('index') }}" class="btn btn-outline-success">
           🎲 Другая игра
         </a>
-        <a href="{{ url_for('add_review') }}" class="btn btn-success">
-          💬 Оставить отзыв
-        </a>
+
+        {% if current_user.is_authenticated and current_user.is_admin %}
+          <a href="{{ url_for('add_boardgame') }}" class="btn btn-primary">
+            ➕ Добавить игру
+          </a>
+        {% endif %}
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('add_review') }}" class="btn btn-success">
+            💬 Оставить отзыв
+          </a>
+          <span class="navbar-text mx-2">Привет, <b>{{ current_user.username }}</b>!</span>
+          <form action="{{ url_for('logout') }}" method="POST" class="d-inline m-0">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-outline-danger btn-sm">Выйти</button>
+          </form>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="btn btn-outline-success">Войти</a>
+          <a href="{{ url_for('register') }}" class="btn btn-success">Регистрация</a>
+        {% endif %}
       </div>
       
     </div>
