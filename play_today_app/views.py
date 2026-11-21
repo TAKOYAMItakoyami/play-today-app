@@ -325,3 +325,21 @@ def boardgame_view(id):
     return render_template(
         'index.html', boardgame=boardgame, reviews=reviews
     )
+
+
+@app.route('/admin/boardgames')
+@login_required
+@admin_required
+def admin_boardgames():
+    """Страница управления всеми играми (только для админа)."""
+    boardgames = Boardgame.query.order_by(Boardgame.name).all()
+    return render_template('admin_boardgames.html', boardgames=boardgames)
+
+
+@app.route('/admin/users')
+@login_required
+@admin_required
+def admin_users():
+    """Страница управления пользователями (только для админа)."""
+    users = User.query.order_by(User.username).all()
+    return render_template('admin_users.html', users=users)

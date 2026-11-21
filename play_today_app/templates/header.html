@@ -12,21 +12,33 @@
           🎲 Другая игра
         </a>
 
+        <!-- Выпадающее меню администратора -->
         {% if current_user.is_authenticated and current_user.is_admin %}
-          <a href="{{ url_for('add_boardgame') }}" class="btn btn-primary">
-            ➕ Добавить игру
-          </a>
+          <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" id="adminMenu" data-bs-toggle="dropdown" aria-expanded="false">
+              ⚙️ Админ-панель
+            </button>
+            <ul class="dropdown-menu shadow" aria-labelledby="adminMenu">
+              <li><a class="dropdown-item" href="{{ url_for('admin_boardgames') }}">Управление настольными играми</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('admin_users') }}">Управление пользователями</a></li>
+            </ul>
+          </div>
         {% endif %}
+
+        <!-- Кнопки для авторизованных пользователей -->
         {% if current_user.is_authenticated %}
           <a href="{{ url_for('add_review') }}" class="btn btn-success">
             💬 Оставить отзыв
           </a>
           <span class="navbar-text mx-2">Привет, <b>{{ current_user.username }}</b>!</span>
+
           <form action="{{ url_for('logout') }}" method="POST" class="d-inline m-0">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <button type="submit" class="btn btn-outline-danger btn-sm">Выйти</button>
           </form>
+
         {% else %}
+          <!-- Кнопки для гостей -->
           <a href="{{ url_for('login') }}" class="btn btn-outline-success">Войти</a>
           <a href="{{ url_for('register') }}" class="btn btn-success">Регистрация</a>
         {% endif %}

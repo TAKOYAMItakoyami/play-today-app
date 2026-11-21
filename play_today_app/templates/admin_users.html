@@ -1,0 +1,47 @@
+{% extends "base.html" %} 
+
+{% block title %} Управление пользователями {% endblock %} 
+
+{% block content %}
+<section class="container my-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Пользователи</h1>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            <th>Логин</th>
+            <th>Роль</th>
+            <th>Кол-во отзывов</th>
+            <th class="text-end">Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>
+              {% if user.is_admin %}
+                <span class="badge bg-danger">Админ</span>
+              {% else %}
+                <span class="badge bg-info text-dark">Пользователь</span>
+              {% endif %}
+            </td>
+            <td>{{ user.reviews.count() }}</td>
+            <td class="text-end">
+              <!-- Для размещения возможности удаление/бана юзера -->
+              <button class="btn btn-sm btn-outline-secondary" disabled>⚙️</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
