@@ -20,6 +20,7 @@ class User(UserMixin, Model):
     username = db.Column(db.String(64), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
 
     # Связь с отзывами (один ко многим)
     reviews = db.relationship('Review', backref='author', lazy='dynamic')

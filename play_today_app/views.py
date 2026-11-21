@@ -177,11 +177,20 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
+
+        # Проверка: юзер есть и пароль верный
         if user and user.check_password(form.password.data):
+
+            # Проверка: юзер забанен?
+            if not user.is_active:
+                flash(
+                    'Ваш аккаунт был заблокирован администратором.',
+                    category='danger'
+                )
+                return render_template('login.html', form=form)
+
             login_user(user)
             flash('Вы успешно вошли в систему!', category='success')
-            # Если пользователь перекинут на вход со страницы
-            # добавления отзыва, то возвращение его обратно
             next_page = request.args.get('next')
             return redirect(next_page or url_for('index'))
 
@@ -222,7 +231,7 @@ async def add_review():
 
         if form.images.data:
             valid_images = [
-                img for img in form.images.data 
+                img for img in form.images.data
                 if hasattr(img, 'filename') and img.filename
             ]
             if valid_images:
@@ -343,3 +352,31 @@ def admin_users():
     """Страница управления пользователями (только для админа)."""
     users = User.query.order_by(User.username).all()
     return render_template('admin_users.html', users=users)
+
+
+@app.route('/admin/toggle_user_status/<int:id>', methods=['POST'])
+@login_required
+@admin_required
+def toggle_user_status(id):
+    """Блокировка/разблокировка пользователя (только для админа)."""
+    user = User.query.get_or_404(id)
+
+    # Защита: админ не может забанить сам себя
+    if user.id == current_user.id:
+        flash('Вы не можете заблокировать самого себя!', 'danger')
+        return redirect(url_for('admin_users'))
+
+    # Переключение статуса (True -> False, False -> True)
+    user.is_active = not user.is_active
+    status_text = "разблокирован" if user.is_active else "заблокирован"
+
+    try:
+        db.session.commit()
+        flash(
+            f'Пользователь {user.username} успешно {status_text}.', 'success'
+        )
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка: {str(e)}', 'danger')
+
+    return redirect(url_for('admin_users'))

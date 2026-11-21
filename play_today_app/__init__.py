@@ -30,6 +30,10 @@ from .models import User  # noqa
 # по id — потому что в cookie лежит только id.
 @login_manager.user_loader
 def load_user(user_id):
-    return db.session.get(User, int(user_id))
+    user = db.session.get(User, int(user_id))
+    # Если пользователь забанен, то сессия аннулируется
+    if user and not user.is_active:
+        return None
+    return user
 
 from . import api_views, cli_commands, error_handlers, models, views  # noqa
