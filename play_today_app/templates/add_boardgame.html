@@ -6,7 +6,9 @@
 <section class="container my-5">
   <div class="row justify-content-center">
     <div class="col-12 col-lg-8">
-      <h1 class="mb-4">Добавление новой настольной игры</h1>
+      <h1 class="mb-4">
+        {% if is_edit %}Редактирование настольной игры{% else %}Добавление новой настольной игры{% endif %}
+      </h1>
       
       <form method="POST" novalidate class="bg-white p-4 rounded shadow-sm">
         {{ form.csrf_token }}
@@ -54,7 +56,11 @@
           {{ form.is_available.label(class="form-check-label fw-bold") }}
         </div>
 
-        {{ form.submit(class="btn btn-success btn-lg w-100") }}
+        {% if is_edit %}
+          <button type="submit" class="btn btn-success btn-lg w-100">Сохранить изменения</button>
+        {% else %}
+          {{ form.submit(class="btn btn-success btn-lg w-100") }}
+        {% endif %}
       </form>
     </div>
   </div>

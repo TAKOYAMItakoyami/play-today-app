@@ -16,28 +16,31 @@ from wtforms.validators import DataRequired, Length, EqualTo, NumberRange
 class RegisterForm(FlaskForm):
     """Форма регистрации нового пользователя."""
     username = StringField(
-        'Ваше имя (логин)',
+        label='Ваше имя (логин)',
         validators=[DataRequired(message='Обязательное поле'), Length(3, 64)]
     )
     password = PasswordField(
-        'Пароль',
+        label='Пароль',
         validators=[DataRequired(message='Обязательное поле'), Length(min=6)]
     )
     password_confirm = PasswordField(
-        'Повторите пароль',
+        label='Повторите пароль',
         validators=[
             DataRequired(),
             EqualTo('password', message='Пароли должны совпадать')
         ]
     )
-    submit = SubmitField('Зарегистрироваться')
+    submit = SubmitField(label='Зарегистрироваться')
 
 
 class LoginForm(FlaskForm):
     """Форма входа."""
-    username = StringField('Ваше имя (логин)', validators=[DataRequired()])
-    password = PasswordField('Пароль', validators=[DataRequired()])
-    submit = SubmitField('Войти')
+    username = StringField(
+        label='Ваше имя (логин)',
+        validators=[DataRequired()]
+    )
+    password = PasswordField(label='Пароль', validators=[DataRequired()])
+    submit = SubmitField(label='Войти')
 
 
 class ReviewForm(FlaskForm):
@@ -45,20 +48,20 @@ class ReviewForm(FlaskForm):
 
     # Выбор игры из списка (заполняется динамически в views.py)
     boardgame_id = SelectField(
-        'Выберите настольную игру',
+        label='Выберите настольную игру',
         coerce=int,  # Превращает строку из HTML в число (int) для базы данных
         validators=[DataRequired(message='Выберите игру')]
     )
 
     rating = RadioField(
-        'Оценка (от 1 до 10)',
+        label='Оценка (от 1 до 10)',
         choices=[(i, str(i)) for i in range(1, 11)],
         coerce=int,
         validators=[DataRequired(message='Поставьте оценку')]
     )
 
     text = TextAreaField(
-        'Напишите отзыв',
+        label='Напишите отзыв',
         validators=[
             DataRequired(message='Обязательное поле'),
             Length(min=10, message='Отзыв должен быть не короче 10 символов')
@@ -66,7 +69,7 @@ class ReviewForm(FlaskForm):
     )
 
     images = MultipleFileField(
-        'Прикрепите фотографии',
+        label='Прикрепите фотографии',
         validators=[
             FileAllowed(
                 ['jpg', 'jpeg', 'png', 'gif', 'bmp'],
@@ -78,34 +81,34 @@ class ReviewForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField('Опубликовать отзыв')
+    submit = SubmitField(label='Опубликовать отзыв')
 
 
 class BoardgameForm(FlaskForm):
     """Форма для добавления новой настольной игры (только для админа)."""
     name = StringField(
-        'Название игры',
+        label='Название игры',
         validators=[DataRequired(message='Обязательное поле'), Length(1, 128)]
     )
     description = TextAreaField(
-        'Описание',
+        label='Описание',
         validators=[DataRequired(message='Обязательное поле')]
     )
     min_players = IntegerField(
-        'Мин. игроков',
+        label='Мин. игроков',
         validators=[DataRequired(), NumberRange(min=1)]
     )
     max_players = IntegerField(
-        'Макс. игроков',
+        label='Макс. игроков',
         validators=[DataRequired(), NumberRange(min=1)]
     )
     min_age = IntegerField(
-        'Мин. возраст',
+        label='Мин. возраст',
         validators=[DataRequired(), NumberRange(min=0)]
     )
     playtime_minutes = IntegerField(
-        'Время партии (мин)',
+        label='Время партии (мин)',
         validators=[DataRequired(), NumberRange(min=1)]
     )
-    is_available = BooleanField('Доступна для игр', default=True)
-    submit = SubmitField('Добавить игру')
+    is_available = BooleanField(label='Доступна для игр', default=True)
+    submit = SubmitField(label='Добавить игру')

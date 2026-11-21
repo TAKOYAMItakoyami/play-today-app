@@ -64,6 +64,27 @@
           {% endif %}
         </div>
 
+        <!-- Отображение существующих картинок при редактировании -->
+        {% if is_edit and review and review.images %}
+        <div class="mb-4 p-3 bg-light rounded border">
+          <label class="form-label fw-bold d-block">Текущие фотографии</label>
+          <p class="small text-muted mb-2">Поставьте галочку, чтобы удалить фотографию.</p>
+          <div class="d-flex flex-wrap gap-3">
+            {% for image_url in review.images %}
+              <div class="text-center" style="width: 120px;">
+                <img src="{{ image_url }}" class="img-thumbnail mb-2 w-100" style="height: 90px; object-fit: cover;" alt="Фото к отзыву">
+                <div class="form-check text-start">
+                  <input class="form-check-input" type="checkbox" name="delete_images" value="{{ image_url }}" id="del_img_{{ loop.index }}">
+                  <label class="form-check-label small text-danger fw-bold" for="del_img_{{ loop.index }}">
+                    Удалить
+                  </label>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
         {% if is_edit %}
           <button type="submit" class="btn btn-success btn-lg w-100">Сохранить изменения</button>
         {% else %}

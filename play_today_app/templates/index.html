@@ -10,10 +10,33 @@
       <div class="col-12 col-lg-7 mb-4">
         <div class="card shadow-sm border-0 h-100">
           <div class="card-body">
-            <h1 class="card-title text-success">{{ boardgame.name }}</h1>
-            <h3 class="text-warning mb-3">⭐ {{ boardgame.average_rating }} / 10</h3>
+            
+            <!-- Верхняя часть карточки: Название, Рейтинг и Кнопки админа -->
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              
+              <!-- Название и рейтинг -->
+              <div>
+                <h1 class="card-title text-success mb-2">{{ boardgame.name }}</h1>
+                <h3 class="mb-0">
+                  <span class="badge bg-warning text-dark fs-5" style="color: #000 !important;">⭐ {{ boardgame.average_rating }} / 10</span>
+                </h3>
+              </div>
 
-            <p class="lead">{{ boardgame.description }}</p>
+              <!-- Кнопки управления игрой (видны только админу) -->
+              {% if current_user.is_authenticated and current_user.is_admin %}
+                <div class="d-flex gap-1">
+                  <a href="{{ url_for('edit_boardgame', id=boardgame.id) }}" class="btn btn-sm btn-outline-secondary" title="Редактировать игру">✏️</a>
+                  
+                  <form action="{{ url_for('delete_boardgame', id=boardgame.id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('ВНИМАНИЕ! Вы уверены, что хотите удалить игру? ВСЕ ЕЁ ОТЗЫВЫ ТОЖЕ БУДУТ УДАЛЕНЫ!');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить игру">🗑️</button>
+                  </form>
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Описание игры -->
+            <p class="lead mt-3">{{ boardgame.description }}</p>
 
             <!-- Характеристики игры -->
             <div class="d-flex flex-wrap gap-2 mb-4">
@@ -27,6 +50,7 @@
               {% endif %}
             </div>
 
+            <!-- Кнопки действий для пользователей -->
             <div class="d-flex gap-2">
                 <a href="{{ url_for('index') }}" class="btn btn-outline-success">🎲 Другая игра</a>
                 <a href="{{ url_for('add_review') }}" class="btn btn-success">💬 Оставить отзыв</a>
@@ -54,14 +78,14 @@
                   <h5 class="card-title mb-0">{{ review.author }}</h5>
                   
                   <div class="d-flex align-items-center gap-3">
-                    <span class="badge bg-warning text-dark fs-6">⭐ {{ review.rating }}/10</span>
+                    <span class="badge bg-warning text-dark fs-6" style="color: #000 !important;">⭐ {{ review.rating }}/10</span>
                     
-                    <!-- Кнопки управления (видны только автору или админу) -->
+                    <!-- Кнопки управления отзывом (видны только автору или админу) -->
                     {% if current_user.is_authenticated and (current_user.id == review.user_id or current_user.is_admin) %}
                       <div class="d-flex gap-1">
                         <a href="{{ url_for('edit_review', id=review.id) }}" class="btn btn-sm btn-outline-secondary" title="Редактировать">✏️</a>
                         
-                        <form action="{{ url_for('delete_review', id=review.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Вы уверены, что хотите удалить этот отзыв?');">
+                        <form action="{{ url_for('delete_review', id=review.id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Вы уверены, что хотите удалить этот отзыв?');">
                           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                           <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">🗑️</button>
                         </form>

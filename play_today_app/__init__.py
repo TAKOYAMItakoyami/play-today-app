@@ -26,6 +26,8 @@ login_manager.login_message_category = 'warning'
 from .models import User  # noqa
 
 
+# На каждом запросе нужно заново достать пользователя из базы
+# по id — потому что в cookie лежит только id.
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))

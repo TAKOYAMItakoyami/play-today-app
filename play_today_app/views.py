@@ -28,12 +28,14 @@ def add_boardgame():
     form = BoardgameForm()
 
     if form.validate_on_submit():
-        existing_game = Boardgame.query.filter_by(name=form.name.data).first()
-        if existing_game:
+        existing_boardgame = Boardgame.query.filter_by(
+            name=form.name.data
+        ).first()
+        if existing_boardgame:
             flash('Игра с таким названием уже существует!', 'danger')
             return render_template('add_boardgame.html', form=form)
 
-        game = Boardgame(
+        boardgame = Boardgame(
             name=form.name.data,
             description=form.description.data,
             min_players=form.min_players.data,
@@ -44,15 +46,77 @@ def add_boardgame():
         )
 
         try:
-            db.session.add(game)
+            db.session.add(boardgame)
             db.session.commit()
-            flash(f'Игра "{game.name}" успешно добавлена!', 'success')
-            return redirect(url_for('index'))
+            flash(f'Игра "{boardgame.name}" успешно добавлена!', 'success')
+            return redirect(url_for('boardgame_view', id=boardgame.id))
         except Exception as e:
             db.session.rollback()
             flash(f'Ошибка при сохранении: {str(e)}', 'danger')
 
     return render_template('add_boardgame.html', form=form)
+
+
+@app.route('/edit_boardgame/<int:id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def edit_boardgame(id):
+    """Редактирование игры (только для админа)."""
+    boardgame = Boardgame.query.get_or_404(id)
+    form = BoardgameForm(obj=boardgame)
+
+    if form.validate_on_submit():
+        if form.name.data != boardgame.name:
+            existing_game = Boardgame.query.filter_by(
+                name=form.name.data
+            ).first()
+            if existing_game:
+                flash('Игра с таким названием уже существует!', 'danger')
+                return render_template(
+                    'add_boardgame.html',
+                    form=form, is_edit=True,
+                    boardgame=boardgame
+                )
+
+        boardgame.name = form.name.data
+        boardgame.description = form.description.data
+        boardgame.min_players = form.min_players.data
+        boardgame.max_players = form.max_players.data
+        boardgame.min_age = form.min_age.data
+        boardgame.playtime_minutes = form.playtime_minutes.data
+        boardgame.is_available = form.is_available.data
+
+        try:
+            db.session.commit()
+            flash(f'Игра "{boardgame.name}" успешно обновлена!', 'success')
+            return redirect(url_for('boardgame_view', id=boardgame.id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при сохранении: {str(e)}', 'danger')
+
+    return render_template(
+        'add_boardgame.html', form=form, is_edit=True, boardgame=boardgame
+    )
+
+
+@app.route('/delete_boardgame/<int:id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_boardgame(id):
+    """Удаление игры (только для админа)."""
+    boardgame = Boardgame.query.get_or_404(id)
+    name = boardgame.name
+
+    try:
+        # Благодаря cascade='all, delete-orphan' отзывы удалятся автоматически
+        db.session.delete(boardgame)
+        db.session.commit()
+        flash(f'Игра "{name}" и все её отзывы были удалены.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при удалении: {str(e)}', 'danger')
+
+    return redirect(url_for('index'))
 
 
 @app.route('/')
@@ -157,7 +221,10 @@ async def add_review():
         )
 
         if form.images.data:
-            valid_images = [img for img in form.images.data if img.filename]
+            valid_images = [
+                img for img in form.images.data 
+                if hasattr(img, 'filename') and img.filename
+            ]
             if valid_images:
                 images_urls = await upload_images_to_dropbox(valid_images)
                 review.images = images_urls
@@ -213,12 +280,26 @@ async def edit_review(id):
         review.text = form.text.data
         review.boardgame_id = form.boardgame_id.data
 
-        # Если пользователь загрузил новые картинки, замена старых
-        if form.images.data and form.images.data[0].filename:
-            valid_images = [img for img in form.images.data if img.filename]
+        # 1. Обработка удаления существующих картинок
+        deleted_images = request.form.getlist('delete_images')
+        if deleted_images and review.images:
+            review.images = [
+                img for img in review.images if img not in deleted_images
+            ]
+
+        # 2. Обработка загрузки новых картинок
+        if form.images.data:
+            valid_images = [
+                img for img in form.images.data
+                if hasattr(img, 'filename') and img.filename
+            ]
             if valid_images:
                 images_urls = await upload_images_to_dropbox(valid_images)
-                review.images = images_urls
+                if review.images:
+                    # Если картинки уже были, новые добавляются в конец
+                    review.images.extend(images_urls)
+                else:
+                    review.images = images_urls
 
         try:
             db.session.commit()
@@ -228,8 +309,10 @@ async def edit_review(id):
             db.session.rollback()
             flash(f'Ошибка при сохранении: {str(e)}', 'danger')
 
-    # Флаг is_edit=True для шаблона
-    return render_template('add_review.html', form=form, is_edit=True)
+    # Передача объекта review в шаблон нужна, чтобы вывести старые картинки
+    return render_template(
+        'add_review.html', form=form, is_edit=True, review=review
+    )
 
 
 @app.route('/boardgames/<int:id>')
