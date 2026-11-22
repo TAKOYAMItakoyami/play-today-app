@@ -289,11 +289,14 @@ async def edit_review(id):
         review.text = form.text.data
         review.boardgame_id = form.boardgame_id.data
 
+        # Создание локальной копии текущих картинок
+        updated_images = list(review.images) if review.images else []
+
         # 1. Обработка удаления существующих картинок
         deleted_images = request.form.getlist('delete_images')
-        if deleted_images and review.images:
-            review.images = [
-                img for img in review.images if img not in deleted_images
+        if deleted_images:
+            updated_images = [
+                img for img in updated_images if img not in deleted_images
             ]
 
         # 2. Обработка загрузки новых картинок
@@ -304,11 +307,10 @@ async def edit_review(id):
             ]
             if valid_images:
                 images_urls = await upload_images_to_dropbox(valid_images)
-                if review.images:
-                    # Если картинки уже были, новые добавляются в конец
-                    review.images.extend(images_urls)
-                else:
-                    review.images = images_urls
+                updated_images.extend(images_urls)
+
+        # 3. Заставляет SQLAlchemy сохранить изменения в БД
+        review.images = updated_images
 
         try:
             db.session.commit()
@@ -380,3 +382,11 @@ def toggle_user_status(id):
         flash(f'Ошибка: {str(e)}', 'danger')
 
     return redirect(url_for('admin_users'))
+
+
+@app.route('/profile')
+@login_required
+def profile():
+    """Страница профиля пользователя."""
+    reviews = current_user.reviews.order_by(Review.timestamp.desc()).all()
+    return render_template('profile.html', user=current_user, reviews=reviews)

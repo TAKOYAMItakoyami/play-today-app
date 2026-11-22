@@ -1,0 +1,62 @@
+{% extends "base.html" %} 
+
+{% block title %} Мой профиль {% endblock %} 
+
+{% block content %}
+<section class="container my-5">
+  <div class="row">
+    <!-- Информация о пользователе -->
+    <div class="col-12 col-lg-4 mb-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-body text-center">
+          <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="Avatar" class="img-fluid mb-3" style="max-height: 100px;">
+          <h2 class="card-title">{{ user.username }}</h2>
+          <p class="text-muted mb-1">
+            {% if user.is_admin %}
+              <span class="badge bg-danger">Администратор</span>
+            {% else %}
+              <span class="badge bg-info text-dark">Пользователь</span>
+            {% endif %}
+          </p>
+          <p class="small text-muted">Всего отзывов: {{ reviews|length }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Отзывы пользователя -->
+    <div class="col-12 col-lg-8">
+      <h3 class="mb-3">Мои отзывы</h3>
+
+      {% if reviews %}
+        {% for review in reviews %}
+          <div class="card mb-3 shadow-sm border-0">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="card-title mb-0">
+                  <a href="{{ url_for('boardgame_view', id=review.boardgame_id) }}" class="text-decoration-none text-success">
+                    🎲 {{ review.boardgame.name }}
+                  </a>
+                </h5>
+                <span class="badge bg-warning text-dark" style="color: #000 !important;">⭐ {{ review.rating }}/10</span>
+              </div>
+              <small class="text-muted">{{ review.timestamp.strftime('%d.%m.%Y в %H:%M') }}</small>
+              <p class="card-text mt-2">{{ review.text }}</p>
+              
+              <!-- Кнопки управления -->
+              <div class="d-flex gap-1 mt-2">
+                <a href="{{ url_for('edit_review', id=review.id) }}" class="btn btn-sm btn-outline-secondary">✏️ Редактировать</a>
+                <form action="{{ url_for('delete_review', id=review.id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('Удалить этот отзыв?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Удалить</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="alert alert-info">Вы пока не написали ни одного отзыва.</div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock %}

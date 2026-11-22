@@ -33,6 +33,14 @@ class User(UserMixin, Model):
         """Проверяет, совпадает ли пароль с хешем."""
         return check_password_hash(self.password_hash, password)
 
+    def to_dict(self):
+        return dict(
+            id=self.id,
+            username=self.username,
+            is_admin=self.is_admin,
+            is_active=self.is_active
+        )
+
 
 class Boardgame(Model):
     """Модель настольной игры."""
@@ -96,8 +104,11 @@ class Review(Model):
             'rating >= 1 AND rating <= 10', name='check_rating_range'
         ),
     )
-
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey('user.id', ondelete='SET NULL'), 
+        nullable=True
+    )
     images = db.Column(db.JSON)
     timestamp = db.Column(
         db.DateTime(timezone=True),

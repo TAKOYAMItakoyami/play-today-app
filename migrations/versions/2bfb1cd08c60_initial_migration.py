@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: d97c08761e43
+Revision ID: 2bfb1cd08c60
 Revises: 
-Create Date: 2026-11-21 19:26:01.131279
+Create Date: 2026-11-21 20:00:14.275670
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd97c08761e43'
+revision = '2bfb1cd08c60'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -43,13 +43,13 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('text', sa.Text(), nullable=False),
     sa.Column('rating', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('images', sa.JSON(), nullable=True),
     sa.Column('timestamp', sa.DateTime(timezone=True), nullable=True),
     sa.Column('boardgame_id', sa.Integer(), nullable=False),
     sa.CheckConstraint('rating >= 1 AND rating <= 10', name='check_rating_range'),
     sa.ForeignKeyConstraint(['boardgame_id'], ['boardgame.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['user.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('review', schema=None) as batch_op:

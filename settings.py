@@ -9,4 +9,8 @@ load_dotenv()
 class Config(object):
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URI')
     SECRET_KEY = os.getenv('SECRET_KEY')
-    DROPBOX_TOKEN = os.getenv('DROPBOX_TOKEN')
+
+    # Настройки для Dropbox (OAuth 2.0)
+    DROPBOX_APP_KEY = os.getenv('DROPBOX_APP_KEY')
+    DROPBOX_APP_SECRET = os.getenv('DROPBOX_APP_SECRET')
+    DROPBOX_REFRESH_TOKEN = os.getenv('DROPBOX_REFRESH_TOKEN')
