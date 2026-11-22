@@ -1,13 +1,13 @@
-from functools import wraps
 import random
+from functools import wraps
 
-from flask import abort, render_template, redirect, url_for, flash, request
-from flask_login import login_user, logout_user, login_required, current_user
+from flask import abort, flash, redirect, render_template, request, url_for
+from flask_login import current_user, login_required, login_user, logout_user
 
 from . import app, db
-from .models import Boardgame, Review, User
-from .forms import BoardgameForm, LoginForm, RegisterForm, ReviewForm
 from .dropbox import upload_images_to_dropbox
+from .forms import BoardgameForm, LoginForm, RegisterForm, ReviewForm
+from .models import Boardgame, Review, User
 
 
 # Декоратор для проверки прав администратора
@@ -17,10 +17,11 @@ def admin_required(function):
         if not current_user.is_authenticated or not current_user.is_admin:
             abort(403)
         return function(*args, **kwargs)
+
     return decorated_function
 
 
-@app.route('/add_boardgame', methods=['GET', 'POST'])
+@app.route("/add_boardgame", methods=["GET", "POST"])
 @login_required
 @admin_required
 def add_boardgame():
@@ -32,8 +33,8 @@ def add_boardgame():
             name=form.name.data
         ).first()
         if existing_boardgame:
-            flash('Игра с таким названием уже существует!', 'danger')
-            return render_template('add_boardgame.html', form=form)
+            flash("Игра с таким названием уже существует!", "danger")
+            return render_template("add_boardgame.html", form=form)
 
         boardgame = Boardgame(
             name=form.name.data,
@@ -42,22 +43,22 @@ def add_boardgame():
             max_players=form.max_players.data,
             min_age=form.min_age.data,
             playtime_minutes=form.playtime_minutes.data,
-            is_available=form.is_available.data
+            is_available=form.is_available.data,
         )
 
         try:
             db.session.add(boardgame)
             db.session.commit()
-            flash(f'Игра "{boardgame.name}" успешно добавлена!', 'success')
-            return redirect(url_for('boardgame_view', id=boardgame.id))
+            flash(f'Игра "{boardgame.name}" успешно добавлена!', "success")
+            return redirect(url_for("boardgame_view", id=boardgame.id))
         except Exception as e:
             db.session.rollback()
-            flash(f'Ошибка при сохранении: {str(e)}', 'danger')
+            flash(f"Ошибка при сохранении: {str(e)}", "danger")
 
-    return render_template('add_boardgame.html', form=form)
+    return render_template("add_boardgame.html", form=form)
 
 
-@app.route('/edit_boardgame/<int:id>', methods=['GET', 'POST'])
+@app.route("/edit_boardgame/<int:id>", methods=["GET", "POST"])
 @login_required
 @admin_required
 def edit_boardgame(id):
@@ -71,11 +72,12 @@ def edit_boardgame(id):
                 name=form.name.data
             ).first()
             if existing_game:
-                flash('Игра с таким названием уже существует!', 'danger')
+                flash("Игра с таким названием уже существует!", "danger")
                 return render_template(
-                    'add_boardgame.html',
-                    form=form, is_edit=True,
-                    boardgame=boardgame
+                    "add_boardgame.html",
+                    form=form,
+                    is_edit=True,
+                    boardgame=boardgame,
                 )
 
         boardgame.name = form.name.data
@@ -88,18 +90,18 @@ def edit_boardgame(id):
 
         try:
             db.session.commit()
-            flash(f'Игра "{boardgame.name}" успешно обновлена!', 'success')
-            return redirect(url_for('boardgame_view', id=boardgame.id))
+            flash(f'Игра "{boardgame.name}" успешно обновлена!', "success")
+            return redirect(url_for("boardgame_view", id=boardgame.id))
         except Exception as e:
             db.session.rollback()
-            flash(f'Ошибка при сохранении: {str(e)}', 'danger')
+            flash(f"Ошибка при сохранении: {str(e)}", "danger")
 
     return render_template(
-        'add_boardgame.html', form=form, is_edit=True, boardgame=boardgame
+        "add_boardgame.html", form=form, is_edit=True, boardgame=boardgame
     )
 
 
-@app.route('/delete_boardgame/<int:id>', methods=['POST'])
+@app.route("/delete_boardgame/<int:id>", methods=["POST"])
 @login_required
 @admin_required
 def delete_boardgame(id):
@@ -111,37 +113,39 @@ def delete_boardgame(id):
         # Благодаря cascade='all, delete-orphan' отзывы удалятся автоматически
         db.session.delete(boardgame)
         db.session.commit()
-        flash(f'Игра "{name}" и все её отзывы были удалены.', 'success')
+        flash(f'Игра "{name}" и все её отзывы были удалены.', "success")
     except Exception as e:
         db.session.rollback()
-        flash(f'Ошибка при удалении: {str(e)}', 'danger')
+        flash(f"Ошибка при удалении: {str(e)}", "danger")
 
-    return redirect(url_for('index'))
+    return redirect(url_for("index"))
 
 
-@app.route('/')
+@app.route("/")
 def index():
     """Главная страница: показывает случайную игру и её отзывы."""
     boardgames = Boardgame.query.all()
     if not boardgames:
-        return render_template('index.html', boardgame=None, reviews=[])
+        return render_template("index.html", boardgame=None, reviews=[])
 
     random_boardgame = random.choice(boardgames)
 
-    reviews = Review.query.filter_by(
-        boardgame_id=random_boardgame.id
-    ).order_by(Review.timestamp.desc()).all()
+    reviews = (
+        Review.query.filter_by(boardgame_id=random_boardgame.id)
+        .order_by(Review.timestamp.desc())
+        .all()
+    )
 
     return render_template(
-        'index.html', boardgame=random_boardgame, reviews=reviews
+        "index.html", boardgame=random_boardgame, reviews=reviews
     )
 
 
-@app.route('/register', methods=['GET', 'POST'])
+@app.route("/register", methods=["GET", "POST"])
 def register():
     """Страница регистрации."""
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for("index"))
 
     form = RegisterForm()
     if form.validate_on_submit():
@@ -149,10 +153,9 @@ def register():
         user = User.query.filter_by(username=form.username.data).first()
         if user:
             flash(
-                'Пользователь с таким именем уже существует',
-                category='danger'
+                "Пользователь с таким именем уже существует", category="danger"
             )
-            return render_template('register.html', form=form)
+            return render_template("register.html", form=form)
 
         new_user = User(username=form.username.data)
         new_user.set_password(form.password.data)
@@ -160,19 +163,19 @@ def register():
         db.session.commit()
 
         flash(
-            'Регистрация прошла успешно! Теперь вы можете войти.',
-            category='success'
+            "Регистрация прошла успешно! Теперь вы можете войти.",
+            category="success",
         )
-        return redirect(url_for('login'))
+        return redirect(url_for("login"))
 
-    return render_template('register.html', form=form)
+    return render_template("register.html", form=form)
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     """Страница входа."""
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for("index"))
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -184,40 +187,39 @@ def login():
             # Проверка: юзер забанен?
             if not user.is_active:
                 flash(
-                    'Ваш аккаунт был заблокирован администратором.',
-                    category='danger'
+                    "Ваш аккаунт был заблокирован администратором.",
+                    category="danger",
                 )
-                return render_template('login.html', form=form)
+                return render_template("login.html", form=form)
 
             login_user(user)
-            flash('Вы успешно вошли в систему!', category='success')
-            next_page = request.args.get('next')
-            return redirect(next_page or url_for('index'))
+            flash("Вы успешно вошли в систему!", category="success")
+            next_page = request.args.get("next")
+            return redirect(next_page or url_for("index"))
 
-        flash('Неправильное имя пользователя или пароль', category='danger')
+        flash("Неправильное имя пользователя или пароль", category="danger")
 
-    return render_template('login.html', form=form)
+    return render_template("login.html", form=form)
 
 
-@app.route('/logout', methods=['POST'])
+@app.route("/logout", methods=["POST"])
 @login_required
 def logout():
     """Выход из системы."""
     logout_user()
-    flash('Вы вышли из системы.', 'info')
-    return redirect(url_for('index'))
+    flash("Вы вышли из системы.", "info")
+    return redirect(url_for("index"))
 
 
-@app.route('/add_review', methods=['GET', 'POST'])
+@app.route("/add_review", methods=["GET", "POST"])
 @login_required
 async def add_review():
     """Страница добавления нового отзыва (только для авторизованных)."""
     form = ReviewForm()
 
     form.boardgame_id.choices = [
-        (
-            boardgame.id, boardgame.name
-        ) for boardgame in Boardgame.query.order_by('name').all()
+        (boardgame.id, boardgame.name)
+        for boardgame in Boardgame.query.order_by("name").all()
     ]
 
     if form.validate_on_submit():
@@ -226,13 +228,14 @@ async def add_review():
             user_id=current_user.id,
             rating=form.rating.data,
             text=form.text.data,
-            images=[]
+            images=[],
         )
 
         if form.images.data:
             valid_images = [
-                img for img in form.images.data
-                if hasattr(img, 'filename') and img.filename
+                img
+                for img in form.images.data
+                if hasattr(img, "filename") and img.filename
             ]
             if valid_images:
                 images_urls = await upload_images_to_dropbox(valid_images)
@@ -241,16 +244,16 @@ async def add_review():
         try:
             db.session.add(review)
             db.session.commit()
-            flash('Ваш отзыв успешно добавлен!', category='success')
-            return redirect(url_for('boardgame_view', id=review.boardgame_id))
+            flash("Ваш отзыв успешно добавлен!", category="success")
+            return redirect(url_for("boardgame_view", id=review.boardgame_id))
         except Exception as e:
             db.session.rollback()
-            flash(f'Ошибка при сохранении: {str(e)}', category='danger')
+            flash(f"Ошибка при сохранении: {str(e)}", category="danger")
 
-    return render_template('add_review.html', form=form)
+    return render_template("add_review.html", form=form)
 
 
-@app.route('/delete_review/<int:id>', methods=['POST'])
+@app.route("/delete_review/<int:id>", methods=["POST"])
 @login_required
 def delete_review(id):
     """Удаление отзыва (доступно автору или админу)."""
@@ -263,11 +266,11 @@ def delete_review(id):
     boardgame_id = review.boardgame_id
     db.session.delete(review)
     db.session.commit()
-    flash('Отзыв был успешно удален.', 'success')
-    return redirect(url_for('boardgame_view', id=boardgame_id))
+    flash("Отзыв был успешно удален.", "success")
+    return redirect(url_for("boardgame_view", id=boardgame_id))
 
 
-@app.route('/edit_review/<int:id>', methods=['GET', 'POST'])
+@app.route("/edit_review/<int:id>", methods=["GET", "POST"])
 @login_required
 async def edit_review(id):
     """Редактирование отзыва (доступно автору или админу)."""
@@ -279,9 +282,8 @@ async def edit_review(id):
 
     form = ReviewForm(obj=review)
     form.boardgame_id.choices = [
-        (
-            boardgame.id, boardgame.name
-        ) for boardgame in Boardgame.query.order_by('name').all()
+        (boardgame.id, boardgame.name)
+        for boardgame in Boardgame.query.order_by("name").all()
     ]
 
     if form.validate_on_submit():
@@ -293,7 +295,7 @@ async def edit_review(id):
         updated_images = list(review.images) if review.images else []
 
         # 1. Обработка удаления существующих картинок
-        deleted_images = request.form.getlist('delete_images')
+        deleted_images = request.form.getlist("delete_images")
         if deleted_images:
             updated_images = [
                 img for img in updated_images if img not in deleted_images
@@ -302,8 +304,9 @@ async def edit_review(id):
         # 2. Обработка загрузки новых картинок
         if form.images.data:
             valid_images = [
-                img for img in form.images.data
-                if hasattr(img, 'filename') and img.filename
+                img
+                for img in form.images.data
+                if hasattr(img, "filename") and img.filename
             ]
             if valid_images:
                 images_urls = await upload_images_to_dropbox(valid_images)
@@ -314,49 +317,49 @@ async def edit_review(id):
 
         try:
             db.session.commit()
-            flash('Отзыв успешно обновлен!', 'success')
-            return redirect(url_for('boardgame_view', id=review.boardgame_id))
+            flash("Отзыв успешно обновлен!", "success")
+            return redirect(url_for("boardgame_view", id=review.boardgame_id))
         except Exception as e:
             db.session.rollback()
-            flash(f'Ошибка при сохранении: {str(e)}', 'danger')
+            flash(f"Ошибка при сохранении: {str(e)}", "danger")
 
     # Передача объекта review в шаблон нужна, чтобы вывести старые картинки
     return render_template(
-        'add_review.html', form=form, is_edit=True, review=review
+        "add_review.html", form=form, is_edit=True, review=review
     )
 
 
-@app.route('/boardgames/<int:id>')
+@app.route("/boardgames/<int:id>")
 def boardgame_view(id):
     boardgame = Boardgame.query.get_or_404(id)
-    reviews = Review.query.filter_by(
-        boardgame_id=boardgame.id
-    ).order_by(Review.timestamp.desc()).all()
-
-    return render_template(
-        'index.html', boardgame=boardgame, reviews=reviews
+    reviews = (
+        Review.query.filter_by(boardgame_id=boardgame.id)
+        .order_by(Review.timestamp.desc())
+        .all()
     )
 
+    return render_template("index.html", boardgame=boardgame, reviews=reviews)
 
-@app.route('/admin/boardgames')
+
+@app.route("/admin/boardgames")
 @login_required
 @admin_required
 def admin_boardgames():
     """Страница управления всеми играми (только для админа)."""
     boardgames = Boardgame.query.order_by(Boardgame.name).all()
-    return render_template('admin_boardgames.html', boardgames=boardgames)
+    return render_template("admin_boardgames.html", boardgames=boardgames)
 
 
-@app.route('/admin/users')
+@app.route("/admin/users")
 @login_required
 @admin_required
 def admin_users():
     """Страница управления пользователями (только для админа)."""
     users = User.query.order_by(User.username).all()
-    return render_template('admin_users.html', users=users)
+    return render_template("admin_users.html", users=users)
 
 
-@app.route('/admin/toggle_user_status/<int:id>', methods=['POST'])
+@app.route("/admin/toggle_user_status/<int:id>", methods=["POST"])
 @login_required
 @admin_required
 def toggle_user_status(id):
@@ -365,8 +368,8 @@ def toggle_user_status(id):
 
     # Защита: админ не может забанить сам себя
     if user.id == current_user.id:
-        flash('Вы не можете заблокировать самого себя!', 'danger')
-        return redirect(url_for('admin_users'))
+        flash("Вы не можете заблокировать самого себя!", "danger")
+        return redirect(url_for("admin_users"))
 
     # Переключение статуса (True -> False, False -> True)
     user.is_active = not user.is_active
@@ -375,18 +378,18 @@ def toggle_user_status(id):
     try:
         db.session.commit()
         flash(
-            f'Пользователь {user.username} успешно {status_text}.', 'success'
+            f"Пользователь {user.username} успешно {status_text}.", "success"
         )
     except Exception as e:
         db.session.rollback()
-        flash(f'Ошибка: {str(e)}', 'danger')
+        flash(f"Ошибка: {str(e)}", "danger")
 
-    return redirect(url_for('admin_users'))
+    return redirect(url_for("admin_users"))
 
 
-@app.route('/profile')
+@app.route("/profile")
 @login_required
 def profile():
     """Страница профиля пользователя."""
     reviews = current_user.reviews.order_by(Review.timestamp.desc()).all()
-    return render_template('profile.html', user=current_user, reviews=reviews)
+    return render_template("profile.html", user=current_user, reviews=reviews)

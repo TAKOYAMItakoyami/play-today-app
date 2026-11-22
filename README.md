@@ -564,11 +564,12 @@ play-today-app/
 │   ├── env.py
 │   └── versions/
 │       └── 2bfb1cd08c60_initial_migration.py
+├── .flake8                   # Конфигурация flake8 (лимиты, игноримые правила, исключения)
 ├── .env.example              # Шаблон переменных окружения
 ├── .gitignore                # Исключения (venv, .env, instance/, *.sqlite3)
 ├── boardgames.csv            # Тестовые данные для CLI
 ├── settings.py               # Конфигурация (Config)
-├── pyproject.toml            # black, isort, mypy (конфигурация)
+├── pyproject.toml            # Конфигурация black, isort, mypy
 ├── requirements.txt          # Прикладные зависимости
 ├── requirements-dev.txt      # + линтеры (black, flake8, isort)
 └── LICENSE
@@ -580,11 +581,45 @@ play-today-app/
 
 ```bash
 pip install -r requirements-dev.txt
+```
+
+**flake8** настраивается файлом `.flake8` в корне проекта:
+
+```ini
+[flake8]
+ignore =
+    E501, E265, F811, PT001, DJ05, D100, D105, D104, W503, W504, W292
+max-line-length = 79
+max-complexity = 10
+exclude =
+    venv/,
+    env/,
+    migrations/
+```
+
+- `max-line-length = 79` и `max-complexity = 10` — базовые лимиты;
+- `ignore` — список подавляемых правил (в том числе `E501` и `W503/W504/W292`,
+  которые дублируют/конфликтуют с форматированием black);
+- `exclude` — из проверки исключены окружение и каталог `migrations/`.
+
+Запуск:
+
+```bash
 flake8
 ```
 
-`black` и `isort` настроены в `pyproject.toml` (line-length = 79, profile = "black").
-`mypy` настроен в `pyproject.toml` (отключена ошибка import-untyped), но сам пакет не входит в зависимости.
+**black** и **isort** настроены в `pyproject.toml` (line-length = 79,
+target-version = py312, профиль black; из форматирования исключены
+`venv`, `env` и `migrations`). Запуск:
+
+```bash
+black .
+isort .
+```
+
+**mypy** настроен в `pyproject.toml` (отключена ошибка `import-untyped`),
+но сам пакет в зависимости не входит — при необходимости установите его
+отдельно.
 
 ## Использованные технологии
 

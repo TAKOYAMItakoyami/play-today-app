@@ -6,22 +6,22 @@ import aiohttp
 from flask import current_app  # Для доступа к конфигу
 
 # Эндпоинты Dropbox
-TOKEN_LINK = 'https://api.dropboxapi.com/oauth2/token'
-UPLOAD_LINK = 'https://content.dropboxapi.com/2/files/upload'
+TOKEN_LINK = "https://api.dropboxapi.com/oauth2/token"
+UPLOAD_LINK = "https://content.dropboxapi.com/2/files/upload"
 SHARING_LINK = (
-    'https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings'
+    "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings"
 )
 
 
 async def get_dropbox_access_token(session):
     """Асинхронно получает новый access_token, используя refresh_token."""
     data = {
-        'grant_type': 'refresh_token',
-        'refresh_token': current_app.config['DROPBOX_REFRESH_TOKEN'],
+        "grant_type": "refresh_token",
+        "refresh_token": current_app.config["DROPBOX_REFRESH_TOKEN"],
     }
     auth = aiohttp.BasicAuth(
-        current_app.config['DROPBOX_APP_KEY'],
-        current_app.config['DROPBOX_APP_SECRET']
+        current_app.config["DROPBOX_APP_KEY"],
+        current_app.config["DROPBOX_APP_SECRET"],
     )
 
     async with session.post(TOKEN_LINK, data=data, auth=auth) as response:
@@ -30,7 +30,7 @@ async def get_dropbox_access_token(session):
             raise Exception(f"Не удалось обновить Dropbox токен: {error_data}")
 
         token_data = await response.json()
-        return token_data['access_token']
+        return token_data["access_token"]
 
 
 async def upload_images_to_dropbox(images):
@@ -56,44 +56,48 @@ async def upload_image_and_get_url(session, image, access_token):
     """Асинхронная функция загрузки изображений и получения на них ссылок."""
     # Сброс указателя и очистка имени файла
     image.seek(0)
-    safe_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', image.filename)
+    safe_filename = re.sub(r"[^a-zA-Z0-9_.-]", "_", image.filename)
 
-    dropbox_args = json.dumps({
-        'autorename': True,
-        'mode': 'add',
-        'path': f'/{safe_filename}',
-    })
+    dropbox_args = json.dumps(
+        {
+            "autorename": True,
+            "mode": "add",
+            "path": f"/{safe_filename}",
+        }
+    )
 
     headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/octet-stream',
-        'Dropbox-API-Arg': dropbox_args
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/octet-stream",
+        "Dropbox-API-Arg": dropbox_args,
     }
 
-    async with session.post(UPLOAD_LINK, headers=headers, data=image.read()) as response:
+    async with session.post(
+        UPLOAD_LINK, headers=headers, data=image.read()
+    ) as response:
         data = await response.json()
         if response.status != 200:
             raise Exception(
                 f"Ошибка загрузки в Dropbox: {data.get('error_summary')}"
             )
-        path = data['path_lower']
+        path = data["path_lower"]
 
     # Создание публичной ссылки
     headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json',
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
     }
     async with session.post(
-        SHARING_LINK, headers=headers, json={'path': path}
+        SHARING_LINK, headers=headers, json={"path": path}
     ) as response:
         data = await response.json()
-        if 'url' not in data:
-            if 'shared_link_already_exists' in data.get('error', {}):
-                data = data['error']['shared_link_already_exists']['metadata']
+        if "url" not in data:
+            if "shared_link_already_exists" in data.get("error", {}):
+                data = data["error"]["shared_link_already_exists"]["metadata"]
             else:
                 raise Exception(
                     f"Ошибка создания ссылки: {data.get('error_summary')}"
                 )
-        url = data['url']
-        url = url.replace('&dl=0', '&raw=1')
+        url = data["url"]
+        url = url.replace("&dl=0", "&raw=1")
     return url

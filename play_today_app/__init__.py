@@ -1,18 +1,19 @@
+from datetime import timedelta
+
 from flask import Flask
+from flask_jwt_extended import JWTManager
+from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
-from flask_jwt_extended import JWTManager
-from datetime import timedelta
-from settings import Config
 
+from settings import Config
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 # Настройки для JWT
-app.config["JWT_SECRET_KEY"] = app.config['SECRET_KEY']
+app.config["JWT_SECRET_KEY"] = app.config["SECRET_KEY"]
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 
 csrf = CSRFProtect(app)
@@ -24,11 +25,11 @@ jwt = JWTManager(app)
 
 login_manager = LoginManager(app)
 # Перенаправление неавторизованного юзера на эндпоинт 'login'
-login_manager.login_view = 'login'
+login_manager.login_view = "login"
 login_manager.login_message = (
-    'Для доступа к этой странице необходимо войти в систему.'
+    "Для доступа к этой странице необходимо войти в систему."
 )
-login_manager.login_message_category = 'warning'
+login_manager.login_message_category = "warning"
 
 # Загрузка пользователя по id для Flask-Login
 from .models import User  # noqa
@@ -43,5 +44,6 @@ def load_user(user_id):
     if user and not user.is_active:
         return None
     return user
+
 
 from . import api_views, cli_commands, error_handlers, models, views  # noqa

@@ -14,7 +14,7 @@ extend-exclude = '''
   | buck-out
   | build
   | dist
-  | alembic
+  | migrations
   | venv
   | venv312
   | env
