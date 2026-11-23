@@ -212,7 +212,9 @@ def login():
             next_page = request.args.get("next")
             return redirect(next_page or url_for("index"))
 
-        flash("Неправильное имя пользователя или пароль", category=FLASH_DANGER)
+        flash(
+            "Неправильное имя пользователя или пароль", category=FLASH_DANGER
+        )
 
     return render_template("login.html", form=form)
 
@@ -374,7 +376,7 @@ def admin_boardgames():
     return render_template(
         "admin_boardgames.html",
         boardgames=pagination.items,
-        pagination=pagination
+        pagination=pagination,
     )
 
 
@@ -390,9 +392,7 @@ def admin_users():
         page=page, per_page=PER_PAGE_ADMIN_DEFAULT, error_out=False
     )
     return render_template(
-        "admin_users.html",
-        users=pagination.items,
-        pagination=pagination
+        "admin_users.html", users=pagination.items, pagination=pagination
     )
 
 
@@ -415,7 +415,8 @@ def toggle_user_status(id):
     try:
         db.session.commit()
         flash(
-            f"Пользователь {user.username} успешно {status_text}.", FLASH_SUCCESS
+            f"Пользователь {user.username} успешно {status_text}.",
+            FLASH_SUCCESS,
         )
     except Exception as e:
         db.session.rollback()

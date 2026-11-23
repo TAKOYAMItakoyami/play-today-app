@@ -19,21 +19,21 @@ from .constants import (
     MISSING_REVIEW_FIELDS_ERROR,
     NO_CREDENTIALS_ERROR,
     NO_JSON_BODY_ERROR,
+    PAGE_DEFAULT,
     PASSWORD_MIN_LENGTH,
     PASSWORD_TOO_SHORT_ERROR,
-    PAGE_DEFAULT,
     PER_PAGE_DEFAULT,
     REVIEW_DELETE_FORBIDDEN_ERROR,
     REVIEW_EDIT_FORBIDDEN_ERROR,
     REVIEW_NOT_FOUND_ERROR,
     STATUS_BLOCKED,
     STATUS_UNBLOCKED,
+    USER_BLOCKED_ERROR,
+    USER_NOT_FOUND_ERROR,
     USERNAME_INVALID_ERROR,
     USERNAME_MAX_LENGTH,
     USERNAME_MIN_LENGTH,
     USERNAME_TAKEN_ERROR,
-    USER_BLOCKED_ERROR,
-    USER_NOT_FOUND_ERROR,
     WRONG_CREDENTIALS_ERROR,
 )
 from .error_handlers import InvalidAPIUsage
@@ -84,9 +84,7 @@ def api_register():
     password = data["password"]
 
     # Валидация
-    if not (
-        USERNAME_MIN_LENGTH <= len(username) <= USERNAME_MAX_LENGTH
-    ):
+    if not (USERNAME_MIN_LENGTH <= len(username) <= USERNAME_MAX_LENGTH):
         raise InvalidAPIUsage(USERNAME_INVALID_ERROR)
     if len(password) < PASSWORD_MIN_LENGTH:
         raise InvalidAPIUsage(PASSWORD_TOO_SHORT_ERROR)
@@ -135,14 +133,10 @@ def api_login():
     user = User.query.filter_by(username=data["username"]).first()
 
     if not user or not user.check_password(data["password"]):
-        raise InvalidAPIUsage(
-            WRONG_CREDENTIALS_ERROR, HTTPStatus.UNAUTHORIZED
-        )
+        raise InvalidAPIUsage(WRONG_CREDENTIALS_ERROR, HTTPStatus.UNAUTHORIZED)
 
     if not user.is_active:
-        raise InvalidAPIUsage(
-            USER_BLOCKED_ERROR, HTTPStatus.FORBIDDEN
-        )
+        raise InvalidAPIUsage(USER_BLOCKED_ERROR, HTTPStatus.FORBIDDEN)
 
     # Создание токена
     access_token = create_access_token(identity=str(user.id))
@@ -161,10 +155,12 @@ def get_boardgames():
     )
 
     return (
-        jsonify({
-            "boardgames": [game.to_dict() for game in pagination.items],
-            "pagination": get_pagination_meta(pagination)
-        }),
+        jsonify(
+            {
+                "boardgames": [game.to_dict() for game in pagination.items],
+                "pagination": get_pagination_meta(pagination),
+            }
+        ),
         HTTPStatus.OK,
     )
 
@@ -174,9 +170,7 @@ def get_boardgame(id):
     """Получить информацию об игре и её отзывах (с пагинацией)."""
     boardgame = Boardgame.query.get(id)
     if not boardgame:
-        raise InvalidAPIUsage(
-            BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
-        )
+        raise InvalidAPIUsage(BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
 
     page = request.args.get("page", PAGE_DEFAULT, type=int)
     per_page = request.args.get("per_page", PER_PAGE_DEFAULT, type=int)
@@ -188,11 +182,13 @@ def get_boardgame(id):
     )
 
     return (
-        jsonify({
-            "boardgame": boardgame.to_dict(),
-            "reviews": [review.to_dict() for review in pagination.items],
-            "pagination": get_pagination_meta(pagination)
-        }),
+        jsonify(
+            {
+                "boardgame": boardgame.to_dict(),
+                "reviews": [review.to_dict() for review in pagination.items],
+                "pagination": get_pagination_meta(pagination),
+            }
+        ),
         HTTPStatus.OK,
     )
 
@@ -204,9 +200,7 @@ def update_boardgame_api(id):
     """Обновить игру (частично)."""
     boardgame = Boardgame.query.get(id)
     if not boardgame:
-        raise InvalidAPIUsage(
-            BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
-        )
+        raise InvalidAPIUsage(BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
 
     data = request.get_json(silent=True)
     if data is None:
@@ -238,9 +232,7 @@ def delete_boardgame_api(id):
     """Удалить игру и все её отзывы."""
     boardgame = Boardgame.query.get(id)
     if not boardgame:
-        raise InvalidAPIUsage(
-            BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
-        )
+        raise InvalidAPIUsage(BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
 
     try:
         db.session.delete(boardgame)
@@ -303,9 +295,7 @@ def create_review():
 def update_review(id):
     review = Review.query.get(id)
     if not review:
-        raise InvalidAPIUsage(
-            REVIEW_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
-        )
+        raise InvalidAPIUsage(REVIEW_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
 
     current_user_id = int(get_jwt_identity())
     user = User.query.get(current_user_id)
@@ -342,9 +332,7 @@ def update_review(id):
 def delete_review_api(id):
     review = Review.query.get(id)
     if not review:
-        raise InvalidAPIUsage(
-            REVIEW_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
-        )
+        raise InvalidAPIUsage(REVIEW_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
 
     current_user_id = int(get_jwt_identity())
     user = User.query.get(current_user_id)
@@ -376,9 +364,7 @@ def toggle_user_status_api(id):
         raise InvalidAPIUsage(USER_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
 
     if user.is_admin:
-        raise InvalidAPIUsage(
-            ADMIN_BAN_FORBIDDEN_ERROR, HTTPStatus.FORBIDDEN
-        )
+        raise InvalidAPIUsage(ADMIN_BAN_FORBIDDEN_ERROR, HTTPStatus.FORBIDDEN)
 
     user.is_active = not user.is_active
     status = STATUS_UNBLOCKED if user.is_active else STATUS_BLOCKED
@@ -409,10 +395,12 @@ def get_users_api():
     )
 
     return (
-        jsonify({
-            "users": [user.to_dict() for user in pagination.items],
-            "pagination": get_pagination_meta(pagination)
-        }),
+        jsonify(
+            {
+                "users": [user.to_dict() for user in pagination.items],
+                "pagination": get_pagination_meta(pagination),
+            }
+        ),
         HTTPStatus.OK,
     )
 
@@ -435,10 +423,12 @@ def get_current_user_api():
     )
 
     return (
-        jsonify({
-            "user": user.to_dict(),
-            "reviews": [review.to_dict() for review in pagination.items],
-            "pagination": get_pagination_meta(pagination)
-        }),
+        jsonify(
+            {
+                "user": user.to_dict(),
+                "reviews": [review.to_dict() for review in pagination.items],
+                "pagination": get_pagination_meta(pagination),
+            }
+        ),
         HTTPStatus.OK,
     )

@@ -86,9 +86,8 @@ REQUIRED_FIELD_MESSAGE = "Обязательное поле"
 REVIEW_TEXT_TOO_SHORT_MESSAGE = (
     f"Отзыв должен быть не короче {REVIEW_TEXT_MIN_LENGTH} символов"
 )
-ALLOWED_EXTENSIONS_MESSAGE = (
-    "Выберите файлы с расширением "
-    + ", ".join(f".{ext}" for ext in ALLOWED_IMAGE_EXTENSIONS)
+ALLOWED_EXTENSIONS_MESSAGE = "Выберите файлы с расширением " + ", ".join(
+    f".{ext}" for ext in ALLOWED_IMAGE_EXTENSIONS
 )
 RATING_FIELD_LABEL = f"Оценка (от {RATING_MIN} до {RATING_MAX})"
 
