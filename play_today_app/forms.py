@@ -12,17 +12,42 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, EqualTo, Length, NumberRange
 
+from .constants import (
+    ALLOWED_EXTENSIONS_MESSAGE,
+    ALLOWED_IMAGE_EXTENSIONS,
+    GAME_NAME_MAX_LENGTH,
+    GAME_NAME_MIN_LENGTH,
+    MIN_AGE_DEFAULT,
+    MIN_PLAYERS_DEFAULT,
+    PASSWORD_MIN_LENGTH,
+    PLAYTIME_MIN_MINUTES,
+    RATING_FIELD_LABEL,
+    RATING_MAX,
+    RATING_MIN,
+    REQUIRED_FIELD_MESSAGE,
+    REVIEW_TEXT_MIN_LENGTH,
+    REVIEW_TEXT_TOO_SHORT_MESSAGE,
+    USERNAME_MAX_LENGTH,
+    USERNAME_MIN_LENGTH,
+)
+
 
 class RegisterForm(FlaskForm):
     """Форма регистрации нового пользователя."""
 
     username = StringField(
         label="Ваше имя (логин)",
-        validators=[DataRequired(message="Обязательное поле"), Length(3, 64)],
+        validators=[
+            DataRequired(message=REQUIRED_FIELD_MESSAGE),
+            Length(USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH),
+        ],
     )
     password = PasswordField(
         label="Пароль",
-        validators=[DataRequired(message="Обязательное поле"), Length(min=6)],
+        validators=[
+            DataRequired(message=REQUIRED_FIELD_MESSAGE),
+            Length(min=PASSWORD_MIN_LENGTH),
+        ],
     )
     password_confirm = PasswordField(
         label="Повторите пароль",
@@ -55,8 +80,8 @@ class ReviewForm(FlaskForm):
     )
 
     rating = RadioField(
-        label="Оценка (от 1 до 10)",
-        choices=[(i, str(i)) for i in range(1, 11)],
+        label=RATING_FIELD_LABEL,
+        choices=[(i, str(i)) for i in range(RATING_MIN, RATING_MAX + 1)],
         coerce=int,
         validators=[DataRequired(message="Поставьте оценку")],
     )
@@ -64,8 +89,11 @@ class ReviewForm(FlaskForm):
     text = TextAreaField(
         label="Напишите отзыв",
         validators=[
-            DataRequired(message="Обязательное поле"),
-            Length(min=10, message="Отзыв должен быть не короче 10 символов"),
+            DataRequired(message=REQUIRED_FIELD_MESSAGE),
+            Length(
+                min=REVIEW_TEXT_MIN_LENGTH,
+                message=REVIEW_TEXT_TOO_SHORT_MESSAGE,
+            ),
         ],
     )
 
@@ -73,11 +101,8 @@ class ReviewForm(FlaskForm):
         label="Прикрепите фотографии",
         validators=[
             FileAllowed(
-                ["jpg", "jpeg", "png", "gif", "bmp"],
-                message=(
-                    "Выберите файлы с расширением "
-                    ".jpg, .jpeg, .png, .gif или .bmp"
-                ),
+                ALLOWED_IMAGE_EXTENSIONS,
+                message=ALLOWED_EXTENSIONS_MESSAGE,
             )
         ],
     )
@@ -90,24 +115,30 @@ class BoardgameForm(FlaskForm):
 
     name = StringField(
         label="Название игры",
-        validators=[DataRequired(message="Обязательное поле"), Length(1, 128)],
+        validators=[
+            DataRequired(message=REQUIRED_FIELD_MESSAGE),
+            Length(GAME_NAME_MIN_LENGTH, GAME_NAME_MAX_LENGTH),
+        ],
     )
     description = TextAreaField(
         label="Описание",
-        validators=[DataRequired(message="Обязательное поле")],
+        validators=[DataRequired(message=REQUIRED_FIELD_MESSAGE)],
     )
     min_players = IntegerField(
-        label="Мин. игроков", validators=[DataRequired(), NumberRange(min=1)]
+        label="Мин. игроков",
+        validators=[DataRequired(), NumberRange(min=MIN_PLAYERS_DEFAULT)],
     )
     max_players = IntegerField(
-        label="Макс. игроков", validators=[DataRequired(), NumberRange(min=1)]
+        label="Макс. игроков",
+        validators=[DataRequired(), NumberRange(min=MIN_PLAYERS_DEFAULT)],
     )
     min_age = IntegerField(
-        label="Мин. возраст", validators=[DataRequired(), NumberRange(min=0)]
+        label="Мин. возраст",
+        validators=[DataRequired(), NumberRange(min=MIN_AGE_DEFAULT)],
     )
     playtime_minutes = IntegerField(
         label="Время партии (мин)",
-        validators=[DataRequired(), NumberRange(min=1)],
+        validators=[DataRequired(), NumberRange(min=PLAYTIME_MIN_MINUTES)],
     )
     is_available = BooleanField(label="Доступна для игр", default=True)
     submit = SubmitField(label="Добавить игру")

@@ -9,6 +9,33 @@ from flask_jwt_extended import (
 )
 
 from . import app, csrf, db
+from .constants import (
+    ADMIN_BAN_FORBIDDEN_ERROR,
+    ADMIN_RIGHTS_REQUIRED_ERROR,
+    BOARDGAME_ID_NOT_FOUND_ERROR,
+    BOARDGAME_NOT_FOUND_ERROR,
+    DB_ERROR_PREFIX,
+    GAME_NAME_TAKEN_ERROR,
+    MISSING_REVIEW_FIELDS_ERROR,
+    NO_CREDENTIALS_ERROR,
+    NO_JSON_BODY_ERROR,
+    PASSWORD_MIN_LENGTH,
+    PASSWORD_TOO_SHORT_ERROR,
+    PAGE_DEFAULT,
+    PER_PAGE_DEFAULT,
+    REVIEW_DELETE_FORBIDDEN_ERROR,
+    REVIEW_EDIT_FORBIDDEN_ERROR,
+    REVIEW_NOT_FOUND_ERROR,
+    STATUS_BLOCKED,
+    STATUS_UNBLOCKED,
+    USERNAME_INVALID_ERROR,
+    USERNAME_MAX_LENGTH,
+    USERNAME_MIN_LENGTH,
+    USERNAME_TAKEN_ERROR,
+    USER_BLOCKED_ERROR,
+    USER_NOT_FOUND_ERROR,
+    WRONG_CREDENTIALS_ERROR,
+)
 from .error_handlers import InvalidAPIUsage
 from .models import Boardgame, Review, User
 
@@ -36,7 +63,7 @@ def admin_required_api(function):
 
         if not user or not user.is_admin:
             raise InvalidAPIUsage(
-                "Требуются права администратора", HTTPStatus.FORBIDDEN
+                ADMIN_RIGHTS_REQUIRED_ERROR, HTTPStatus.FORBIDDEN
             )
 
         return function(*args, **kwargs)
@@ -51,20 +78,22 @@ def api_register():
     data = request.get_json(silent=True)
 
     if not data or "username" not in data or "password" not in data:
-        raise InvalidAPIUsage("Не указаны username или password")
+        raise InvalidAPIUsage(NO_CREDENTIALS_ERROR)
 
     username = data["username"].strip()
     password = data["password"]
 
     # Валидация
-    if len(username) < 3 or len(username) > 64:
-        raise InvalidAPIUsage("Логин должен быть от 3 до 64 символов")
-    if len(password) < 6:
-        raise InvalidAPIUsage("Пароль должен быть не короче 6 символов")
+    if not (
+        USERNAME_MIN_LENGTH <= len(username) <= USERNAME_MAX_LENGTH
+    ):
+        raise InvalidAPIUsage(USERNAME_INVALID_ERROR)
+    if len(password) < PASSWORD_MIN_LENGTH:
+        raise InvalidAPIUsage(PASSWORD_TOO_SHORT_ERROR)
 
     if User.query.filter_by(username=username).first():
         raise InvalidAPIUsage(
-            "Пользователь с таким именем уже существует",
+            USERNAME_TAKEN_ERROR,
             HTTPStatus.BAD_REQUEST,
         )
 
@@ -77,7 +106,7 @@ def api_register():
     except Exception as e:
         db.session.rollback()
         raise InvalidAPIUsage(
-            f"Ошибка базы данных: {str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
+            f"{DB_ERROR_PREFIX}{str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
         )
 
     access_token = create_access_token(identity=str(new_user.id))
@@ -101,18 +130,18 @@ def api_login():
     data = request.get_json(silent=True)
 
     if not data or "username" not in data or "password" not in data:
-        raise InvalidAPIUsage("Не указаны username или password")
+        raise InvalidAPIUsage(NO_CREDENTIALS_ERROR)
 
     user = User.query.filter_by(username=data["username"]).first()
 
     if not user or not user.check_password(data["password"]):
         raise InvalidAPIUsage(
-            "Неверный логин или пароль", HTTPStatus.UNAUTHORIZED
+            WRONG_CREDENTIALS_ERROR, HTTPStatus.UNAUTHORIZED
         )
 
     if not user.is_active:
         raise InvalidAPIUsage(
-            "Пользователь заблокирован", HTTPStatus.FORBIDDEN
+            USER_BLOCKED_ERROR, HTTPStatus.FORBIDDEN
         )
 
     # Создание токена
@@ -124,8 +153,8 @@ def api_login():
 @app.route("/api/boardgames/", methods=["GET"])
 def get_boardgames():
     """Получить список всех игр (с пагинацией)."""
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 10, type=int)
+    page = request.args.get("page", PAGE_DEFAULT, type=int)
+    per_page = request.args.get("per_page", PER_PAGE_DEFAULT, type=int)
 
     pagination = Boardgame.query.paginate(
         page=page, per_page=per_page, error_out=False
@@ -146,11 +175,11 @@ def get_boardgame(id):
     boardgame = Boardgame.query.get(id)
     if not boardgame:
         raise InvalidAPIUsage(
-            "Игра с указанным id не найдена", HTTPStatus.NOT_FOUND
+            BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
         )
 
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 10, type=int)
+    page = request.args.get("page", PAGE_DEFAULT, type=int)
+    per_page = request.args.get("per_page", PER_PAGE_DEFAULT, type=int)
 
     pagination = (
         Review.query.filter_by(boardgame_id=boardgame.id)
@@ -176,17 +205,17 @@ def update_boardgame_api(id):
     boardgame = Boardgame.query.get(id)
     if not boardgame:
         raise InvalidAPIUsage(
-            "Игра с указанным id не найдена", HTTPStatus.NOT_FOUND
+            BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
         )
 
     data = request.get_json(silent=True)
     if data is None:
-        raise InvalidAPIUsage("В запросе отсутствует JSON тело")
+        raise InvalidAPIUsage(NO_JSON_BODY_ERROR)
 
     if "name" in data and data["name"] != boardgame.name:
         if Boardgame.query.filter_by(name=data["name"]).first():
             raise InvalidAPIUsage(
-                "Игра с таким названием уже существует", HTTPStatus.BAD_REQUEST
+                GAME_NAME_TAKEN_ERROR, HTTPStatus.BAD_REQUEST
             )
 
     boardgame.from_dict(data)
@@ -196,7 +225,7 @@ def update_boardgame_api(id):
     except Exception as e:
         db.session.rollback()
         raise InvalidAPIUsage(
-            f"Ошибка базы данных: {str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
+            f"{DB_ERROR_PREFIX}{str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
         )
 
     return jsonify({"boardgame": boardgame.to_dict()}), HTTPStatus.OK
@@ -210,7 +239,7 @@ def delete_boardgame_api(id):
     boardgame = Boardgame.query.get(id)
     if not boardgame:
         raise InvalidAPIUsage(
-            "Игра с указанным id не найдена", HTTPStatus.NOT_FOUND
+            BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
         )
 
     try:
@@ -219,7 +248,7 @@ def delete_boardgame_api(id):
     except Exception as e:
         db.session.rollback()
         raise InvalidAPIUsage(
-            f"Ошибка базы данных: {str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
+            f"{DB_ERROR_PREFIX}{str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
         )
 
     return "", HTTPStatus.NO_CONTENT
@@ -232,22 +261,19 @@ def create_review():
     data = request.get_json(silent=True)
 
     if data is None:
-        raise InvalidAPIUsage("В запросе отсутствует JSON тело")
+        raise InvalidAPIUsage(NO_JSON_BODY_ERROR)
 
     if (
         "text" not in data
         or "rating" not in data
         or "boardgame_id" not in data
     ):
-        raise InvalidAPIUsage(
-            "В запросе отсутствуют обязательные поля: "
-            "text, rating, boardgame_id"
-        )
+        raise InvalidAPIUsage(MISSING_REVIEW_FIELDS_ERROR)
 
     boardgame = Boardgame.query.get(data["boardgame_id"])
     if not boardgame:
         raise InvalidAPIUsage(
-            "Игра с указанным boardgame_id не найдена", HTTPStatus.NOT_FOUND
+            BOARDGAME_ID_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
         )
 
     current_user_id = get_jwt_identity()
@@ -265,7 +291,7 @@ def create_review():
     except Exception as e:
         db.session.rollback()
         raise InvalidAPIUsage(
-            f"Ошибка базы данных: {str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
+            f"{DB_ERROR_PREFIX}{str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
         )
 
     return jsonify({"review": review.to_dict()}), HTTPStatus.CREATED
@@ -278,7 +304,7 @@ def update_review(id):
     review = Review.query.get(id)
     if not review:
         raise InvalidAPIUsage(
-            "Отзыв с указанным id не найден", HTTPStatus.NOT_FOUND
+            REVIEW_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
         )
 
     current_user_id = int(get_jwt_identity())
@@ -287,12 +313,12 @@ def update_review(id):
     # Проверка прав
     if review.user_id != current_user_id and not user.is_admin:
         raise InvalidAPIUsage(
-            "Вы не можете редактировать чужой отзыв", HTTPStatus.FORBIDDEN
+            REVIEW_EDIT_FORBIDDEN_ERROR, HTTPStatus.FORBIDDEN
         )
 
     data = request.get_json(silent=True)
     if data is None:
-        raise InvalidAPIUsage("В запросе отсутствует JSON тело")
+        raise InvalidAPIUsage(NO_JSON_BODY_ERROR)
 
     if "text" in data:
         review.text = data["text"]
@@ -304,7 +330,7 @@ def update_review(id):
     except Exception as e:
         db.session.rollback()
         raise InvalidAPIUsage(
-            f"Ошибка базы данных: {str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
+            f"{DB_ERROR_PREFIX}{str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
         )
 
     return jsonify({"review": review.to_dict()}), HTTPStatus.OK
@@ -317,7 +343,7 @@ def delete_review_api(id):
     review = Review.query.get(id)
     if not review:
         raise InvalidAPIUsage(
-            "Отзыв с указанным id не найден", HTTPStatus.NOT_FOUND
+            REVIEW_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND
         )
 
     current_user_id = int(get_jwt_identity())
@@ -325,7 +351,7 @@ def delete_review_api(id):
 
     if review.user_id != current_user_id and not user.is_admin:
         raise InvalidAPIUsage(
-            "Вы не можете удалить чужой отзыв", HTTPStatus.FORBIDDEN
+            REVIEW_DELETE_FORBIDDEN_ERROR, HTTPStatus.FORBIDDEN
         )
 
     try:
@@ -334,7 +360,7 @@ def delete_review_api(id):
     except Exception as e:
         db.session.rollback()
         raise InvalidAPIUsage(
-            f"Ошибка базы данных: {str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
+            f"{DB_ERROR_PREFIX}{str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
         )
 
     return "", HTTPStatus.NO_CONTENT
@@ -347,22 +373,22 @@ def toggle_user_status_api(id):
     """Забанить/Разбанить пользователя."""
     user = User.query.get(id)
     if not user:
-        raise InvalidAPIUsage("Пользователь не найден", HTTPStatus.NOT_FOUND)
+        raise InvalidAPIUsage(USER_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
 
     if user.is_admin:
         raise InvalidAPIUsage(
-            "Нельзя забанить администратора", HTTPStatus.FORBIDDEN
+            ADMIN_BAN_FORBIDDEN_ERROR, HTTPStatus.FORBIDDEN
         )
 
     user.is_active = not user.is_active
-    status = "разблокирован" if user.is_active else "заблокирован"
+    status = STATUS_UNBLOCKED if user.is_active else STATUS_BLOCKED
 
     try:
         db.session.commit()
     except Exception as e:
         db.session.rollback()
         raise InvalidAPIUsage(
-            f"Ошибка базы данных: {str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
+            f"{DB_ERROR_PREFIX}{str(e)}", HTTPStatus.INTERNAL_SERVER_ERROR
         )
 
     return (
@@ -375,8 +401,8 @@ def toggle_user_status_api(id):
 @admin_required_api
 def get_users_api():
     """Получить список всех пользователей (только админ, с пагинацией)."""
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 10, type=int)
+    page = request.args.get("page", PAGE_DEFAULT, type=int)
+    per_page = request.args.get("per_page", PER_PAGE_DEFAULT, type=int)
 
     pagination = User.query.paginate(
         page=page, per_page=per_page, error_out=False
@@ -399,10 +425,10 @@ def get_current_user_api():
     user = User.query.get(current_user_id)
 
     if not user:
-        raise InvalidAPIUsage("Пользователь не найден", HTTPStatus.NOT_FOUND)
+        raise InvalidAPIUsage(USER_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
 
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 10, type=int)
+    page = request.args.get("page", PAGE_DEFAULT, type=int)
+    per_page = request.args.get("per_page", PER_PAGE_DEFAULT, type=int)
 
     pagination = user.reviews.order_by(Review.timestamp.desc()).paginate(
         page=page, per_page=per_page, error_out=False

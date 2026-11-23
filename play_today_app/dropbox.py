@@ -1,9 +1,12 @@
 import asyncio
 import json
 import re
+from http import HTTPStatus
 
 import aiohttp
 from flask import current_app  # Для доступа к конфигу
+
+from .constants import BEARER_PREFIX, DROPBOX_DL_PARAM, DROPBOX_RAW_PARAM
 
 # Эндпоинты Dropbox
 TOKEN_LINK = "https://api.dropboxapi.com/oauth2/token"
@@ -25,7 +28,7 @@ async def get_dropbox_access_token(session):
     )
 
     async with session.post(TOKEN_LINK, data=data, auth=auth) as response:
-        if response.status != 200:
+        if response.status != HTTPStatus.OK:
             error_data = await response.json()
             raise Exception(f"Не удалось обновить Dropbox токен: {error_data}")
 
@@ -67,7 +70,7 @@ async def upload_image_and_get_url(session, image, access_token):
     )
 
     headers = {
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": f"{BEARER_PREFIX}{access_token}",
         "Content-Type": "application/octet-stream",
         "Dropbox-API-Arg": dropbox_args,
     }
@@ -76,7 +79,7 @@ async def upload_image_and_get_url(session, image, access_token):
         UPLOAD_LINK, headers=headers, data=image.read()
     ) as response:
         data = await response.json()
-        if response.status != 200:
+        if response.status != HTTPStatus.OK:
             raise Exception(
                 f"Ошибка загрузки в Dropbox: {data.get('error_summary')}"
             )
@@ -84,7 +87,7 @@ async def upload_image_and_get_url(session, image, access_token):
 
     # Создание публичной ссылки
     headers = {
-        "Authorization": f"Bearer {access_token}",
+        "Authorization": f"{BEARER_PREFIX}{access_token}",
         "Content-Type": "application/json",
     }
     async with session.post(
@@ -99,5 +102,5 @@ async def upload_image_and_get_url(session, image, access_token):
                     f"Ошибка создания ссылки: {data.get('error_summary')}"
                 )
         url = data["url"]
-        url = url.replace("&dl=0", "&raw=1")
+        url = url.replace(DROPBOX_DL_PARAM, DROPBOX_RAW_PARAM)
     return url

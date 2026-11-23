@@ -6,6 +6,16 @@ from sqlalchemy import CheckConstraint
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import db
+from .constants import (
+    BOARDGAME_EDITABLE_FIELDS,
+    EMPTY_AVERAGE_RATING,
+    MIN_AGE_DEFAULT,
+    MIN_PLAYERS_DEFAULT,
+    RATING_AVERAGE_PRECISION,
+    RATING_MAX,
+    RATING_MIN,
+    REVIEW_REQUIRED_FIELDS,
+)
 
 if TYPE_CHECKING:
     from flask_sqlalchemy.model import Model  # для MyPy
@@ -48,9 +58,11 @@ class Boardgame(Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), unique=True, nullable=False)
     description = db.Column(db.Text, nullable=False)
-    min_players = db.Column(db.Integer, nullable=False, default=1)
+    min_players = db.Column(
+        db.Integer, nullable=False, default=MIN_PLAYERS_DEFAULT
+    )
     max_players = db.Column(db.Integer, nullable=False)
-    min_age = db.Column(db.Integer, nullable=False, default=0)
+    min_age = db.Column(db.Integer, nullable=False, default=MIN_AGE_DEFAULT)
     playtime_minutes = db.Column(db.Integer, nullable=False)
     is_available = db.Column(db.Boolean, default=True, nullable=False)
 
@@ -65,11 +77,11 @@ class Boardgame(Model):
     def average_rating(self):
         """Вычисляет средний рейтинг игры на основе её отзывов."""
         if not self.reviews:
-            return 0.0
+            return EMPTY_AVERAGE_RATING
 
         return round(
             sum(review.rating for review in self.reviews) / len(self.reviews),
-            1,
+            RATING_AVERAGE_PRECISION,
         )
 
     def to_dict(self):
@@ -86,16 +98,7 @@ class Boardgame(Model):
         )
 
     def from_dict(self, data):
-        fields = [
-            "name",
-            "description",
-            "min_players",
-            "max_players",
-            "min_age",
-            "playtime_minutes",
-            "is_available",
-        ]
-        for field in fields:
+        for field in BOARDGAME_EDITABLE_FIELDS:
             if field in data:
                 setattr(self, field, data[field])
 
@@ -108,7 +111,8 @@ class Review(Model):
     rating = db.Column(db.Integer, nullable=False)
     __table_args__ = (
         CheckConstraint(
-            "rating >= 1 AND rating <= 10", name="check_rating_range"
+            f"rating >= {RATING_MIN} AND rating <= {RATING_MAX}",
+            name="check_rating_range",
         ),
     )
     user_id = db.Column(
@@ -139,6 +143,6 @@ class Review(Model):
         )
 
     def from_dict(self, data):
-        for field in ["text", "rating", "boardgame_id"]:
+        for field in REVIEW_REQUIRED_FIELDS:
             if field in data:
                 setattr(self, field, data[field])

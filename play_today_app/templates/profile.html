@@ -38,7 +38,7 @@
                     🎲 {{ review.boardgame.name }}
                   </a>
                 </h5>
-                <span class="badge bg-warning text-dark" style="color: #000 !important;">⭐ {{ review.rating }}/10</span>
+                <span class="badge bg-warning text-dark" style="color: #000 !important;">⭐ {{ review.rating }}/{{ RATING_MAX }}</span>
               </div>
               <small class="text-muted">{{ review.timestamp.strftime('%d.%m.%Y в %H:%M') }}</small>
               <p class="card-text mt-2">{{ review.text }}</p>

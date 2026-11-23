@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from flask_login import LoginManager
@@ -9,12 +7,14 @@ from flask_wtf.csrf import CSRFProtect
 
 from settings import Config
 
+from .constants import FLASH_WARNING, JWT_ACCESS_TOKEN_EXPIRES, RATING_MAX
+
 app = Flask(__name__)
 app.config.from_object(Config)
 
 # Настройки для JWT
 app.config["JWT_SECRET_KEY"] = app.config["SECRET_KEY"]
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = JWT_ACCESS_TOKEN_EXPIRES
 
 csrf = CSRFProtect(app)
 
@@ -29,7 +29,9 @@ login_manager.login_view = "login"
 login_manager.login_message = (
     "Для доступа к этой странице необходимо войти в систему."
 )
-login_manager.login_message_category = "warning"
+login_manager.login_message_category = FLASH_WARNING
+
+app.jinja_env.globals.update(RATING_MAX=RATING_MAX)
 
 # Загрузка пользователя по id для Flask-Login
 from .models import User  # noqa

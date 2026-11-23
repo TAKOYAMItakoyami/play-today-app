@@ -19,7 +19,7 @@
               <div>
                 <h1 class="card-title text-success mb-2">{{ boardgame.name }}</h1>
                 <h3 class="mb-0">
-                  <span class="badge bg-warning text-dark fs-5" style="color: #000 !important;">⭐ {{ boardgame.average_rating }} / 10</span>
+                  <span class="badge bg-warning text-dark fs-5" style="color: #000 !important;">⭐ {{ boardgame.average_rating }} / {{ RATING_MAX }}</span>
                 </h3>
               </div>
 
@@ -81,7 +81,7 @@
                   </h5>
                   
                   <div class="d-flex align-items-center gap-3">
-                    <span class="badge bg-warning text-dark fs-6" style="color: #000 !important;">⭐ {{ review.rating }}/10</span>
+                    <span class="badge bg-warning text-dark fs-6" style="color: #000 !important;">⭐ {{ review.rating }}/{{ RATING_MAX }}</span>
                     
                     <!-- Кнопки управления отзывом (видны только автору или админу) -->
                     {% if current_user.is_authenticated and (current_user.id == review.user_id or current_user.is_admin) %}

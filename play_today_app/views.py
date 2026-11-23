@@ -1,10 +1,25 @@
 import random
 from functools import wraps
+from http import HTTPStatus
 
 from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 
 from . import app, db
+from .constants import (
+    DELETE_ERROR_PREFIX,
+    FLASH_DANGER,
+    FLASH_INFO,
+    FLASH_SUCCESS,
+    GAME_NAME_TAKEN_ERROR,
+    PAGE_DEFAULT,
+    PER_PAGE_ADMIN_DEFAULT,
+    PER_PAGE_DEFAULT,
+    SAVE_ERROR_PREFIX,
+    STATUS_BLOCKED,
+    STATUS_UNBLOCKED,
+    USERNAME_TAKEN_ERROR,
+)
 from .dropbox import upload_images_to_dropbox
 from .forms import BoardgameForm, LoginForm, RegisterForm, ReviewForm
 from .models import Boardgame, Review, User
@@ -15,7 +30,7 @@ def admin_required(function):
     @wraps(function)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
-            abort(403)
+            abort(HTTPStatus.FORBIDDEN)
         return function(*args, **kwargs)
 
     return decorated_function
@@ -33,7 +48,7 @@ def add_boardgame():
             name=form.name.data
         ).first()
         if existing_boardgame:
-            flash("Игра с таким названием уже существует!", "danger")
+            flash(f"{GAME_NAME_TAKEN_ERROR}!", FLASH_DANGER)
             return render_template("add_boardgame.html", form=form)
 
         boardgame = Boardgame(
@@ -49,11 +64,11 @@ def add_boardgame():
         try:
             db.session.add(boardgame)
             db.session.commit()
-            flash(f'Игра "{boardgame.name}" успешно добавлена!', "success")
+            flash(f'Игра "{boardgame.name}" успешно добавлена!', FLASH_SUCCESS)
             return redirect(url_for("boardgame_view", id=boardgame.id))
         except Exception as e:
             db.session.rollback()
-            flash(f"Ошибка при сохранении: {str(e)}", "danger")
+            flash(f"{SAVE_ERROR_PREFIX}{str(e)}", FLASH_DANGER)
 
     return render_template("add_boardgame.html", form=form)
 
@@ -72,7 +87,7 @@ def edit_boardgame(id):
                 name=form.name.data
             ).first()
             if existing_game:
-                flash("Игра с таким названием уже существует!", "danger")
+                flash(f"{GAME_NAME_TAKEN_ERROR}!", FLASH_DANGER)
                 return render_template(
                     "add_boardgame.html",
                     form=form,
@@ -90,11 +105,11 @@ def edit_boardgame(id):
 
         try:
             db.session.commit()
-            flash(f'Игра "{boardgame.name}" успешно обновлена!', "success")
+            flash(f'Игра "{boardgame.name}" успешно обновлена!', FLASH_SUCCESS)
             return redirect(url_for("boardgame_view", id=boardgame.id))
         except Exception as e:
             db.session.rollback()
-            flash(f"Ошибка при сохранении: {str(e)}", "danger")
+            flash(f"{SAVE_ERROR_PREFIX}{str(e)}", FLASH_DANGER)
 
     return render_template(
         "add_boardgame.html", form=form, is_edit=True, boardgame=boardgame
@@ -113,10 +128,10 @@ def delete_boardgame(id):
         # Благодаря cascade='all, delete-orphan' отзывы удалятся автоматически
         db.session.delete(boardgame)
         db.session.commit()
-        flash(f'Игра "{name}" и все её отзывы были удалены.', "success")
+        flash(f'Игра "{name}" и все её отзывы были удалены.', FLASH_SUCCESS)
     except Exception as e:
         db.session.rollback()
-        flash(f"Ошибка при удалении: {str(e)}", "danger")
+        flash(f"{DELETE_ERROR_PREFIX}{str(e)}", FLASH_DANGER)
 
     return redirect(url_for("index"))
 
@@ -130,12 +145,12 @@ def index():
 
     random_boardgame = random.choice(boardgames)
     # На случай ручного ввода номера страницы с отзывами в адресе.
-    page = request.args.get("page", 1, type=int)
+    page = request.args.get("page", PAGE_DEFAULT, type=int)
 
     reviews = (
         Review.query.filter_by(boardgame_id=random_boardgame.id)
         .order_by(Review.timestamp.desc())
-        .paginate(page=page, per_page=10, error_out=False)
+        .paginate(page=page, per_page=PER_PAGE_DEFAULT, error_out=False)
     )
 
     return render_template(
@@ -154,9 +169,7 @@ def register():
         # Проверка: занят ли логин
         user = User.query.filter_by(username=form.username.data).first()
         if user:
-            flash(
-                "Пользователь с таким именем уже существует", category="danger"
-            )
+            flash(USERNAME_TAKEN_ERROR, category=FLASH_DANGER)
             return render_template("register.html", form=form)
 
         new_user = User(username=form.username.data)
@@ -166,7 +179,7 @@ def register():
 
         flash(
             "Регистрация прошла успешно! Теперь вы можете войти.",
-            category="success",
+            category=FLASH_SUCCESS,
         )
         return redirect(url_for("login"))
 
@@ -190,16 +203,16 @@ def login():
             if not user.is_active:
                 flash(
                     "Ваш аккаунт был заблокирован администратором.",
-                    category="danger",
+                    category=FLASH_DANGER,
                 )
                 return render_template("login.html", form=form)
 
             login_user(user)
-            flash("Вы успешно вошли в систему!", category="success")
+            flash("Вы успешно вошли в систему!", category=FLASH_SUCCESS)
             next_page = request.args.get("next")
             return redirect(next_page or url_for("index"))
 
-        flash("Неправильное имя пользователя или пароль", category="danger")
+        flash("Неправильное имя пользователя или пароль", category=FLASH_DANGER)
 
     return render_template("login.html", form=form)
 
@@ -209,7 +222,7 @@ def login():
 def logout():
     """Выход из системы."""
     logout_user()
-    flash("Вы вышли из системы.", "info")
+    flash("Вы вышли из системы.", FLASH_INFO)
     return redirect(url_for("index"))
 
 
@@ -221,7 +234,7 @@ async def add_review():
 
     form.boardgame_id.choices = [
         (boardgame.id, boardgame.name)
-        for boardgame in Boardgame.query.order_by("name").all()
+        for boardgame in Boardgame.query.order_by(Boardgame.name).all()
     ]
 
     if form.validate_on_submit():
@@ -246,11 +259,11 @@ async def add_review():
         try:
             db.session.add(review)
             db.session.commit()
-            flash("Ваш отзыв успешно добавлен!", category="success")
+            flash("Ваш отзыв успешно добавлен!", category=FLASH_SUCCESS)
             return redirect(url_for("boardgame_view", id=review.boardgame_id))
         except Exception as e:
             db.session.rollback()
-            flash(f"Ошибка при сохранении: {str(e)}", category="danger")
+            flash(f"{SAVE_ERROR_PREFIX}{str(e)}", category=FLASH_DANGER)
 
     return render_template("add_review.html", form=form)
 
@@ -263,12 +276,12 @@ def delete_review(id):
 
     # Проверка прав: автор отзыва или администратор?
     if current_user.id != review.user_id and not current_user.is_admin:
-        abort(403)
+        abort(HTTPStatus.FORBIDDEN)
 
     boardgame_id = review.boardgame_id
     db.session.delete(review)
     db.session.commit()
-    flash("Отзыв был успешно удален.", "success")
+    flash("Отзыв был успешно удален.", FLASH_SUCCESS)
     return redirect(url_for("boardgame_view", id=boardgame_id))
 
 
@@ -280,12 +293,12 @@ async def edit_review(id):
 
     # Проверка прав: автор отзыва или администратор?
     if current_user.id != review.user_id and not current_user.is_admin:
-        abort(403)
+        abort(HTTPStatus.FORBIDDEN)
 
     form = ReviewForm(obj=review)
     form.boardgame_id.choices = [
         (boardgame.id, boardgame.name)
-        for boardgame in Boardgame.query.order_by("name").all()
+        for boardgame in Boardgame.query.order_by(Boardgame.name).all()
     ]
 
     if form.validate_on_submit():
@@ -319,11 +332,11 @@ async def edit_review(id):
 
         try:
             db.session.commit()
-            flash("Отзыв успешно обновлен!", "success")
+            flash("Отзыв успешно обновлен!", FLASH_SUCCESS)
             return redirect(url_for("boardgame_view", id=review.boardgame_id))
         except Exception as e:
             db.session.rollback()
-            flash(f"Ошибка при сохранении: {str(e)}", "danger")
+            flash(f"{SAVE_ERROR_PREFIX}{str(e)}", FLASH_DANGER)
 
     # Передача объекта review в шаблон нужна, чтобы вывести старые картинки
     return render_template(
@@ -336,12 +349,12 @@ def boardgame_view(id):
     boardgame = Boardgame.query.get_or_404(id)
 
     # Получение номера страницы из URL (?page=...). По умолчанию — 1.
-    page = request.args.get("page", 1, type=int)
+    page = request.args.get("page", PAGE_DEFAULT, type=int)
 
     reviews = (
         Review.query.filter_by(boardgame_id=boardgame.id)
         .order_by(Review.timestamp.desc())
-        .paginate(page=page, per_page=10, error_out=False)
+        .paginate(page=page, per_page=PER_PAGE_DEFAULT, error_out=False)
     )
 
     return render_template("index.html", boardgame=boardgame, reviews=reviews)
@@ -352,11 +365,11 @@ def boardgame_view(id):
 @admin_required
 def admin_boardgames():
     """Страница управления всеми играми (только для админа)."""
-    page = request.args.get("page", 1, type=int)
+    page = request.args.get("page", PAGE_DEFAULT, type=int)
 
     # Сортировка по имени и пагинация
     pagination = Boardgame.query.order_by(Boardgame.name).paginate(
-        page=page, per_page=100, error_out=False
+        page=page, per_page=PER_PAGE_ADMIN_DEFAULT, error_out=False
     )
     return render_template(
         "admin_boardgames.html",
@@ -370,11 +383,11 @@ def admin_boardgames():
 @admin_required
 def admin_users():
     """Страница управления пользователями (только для админа)."""
-    page = request.args.get("page", 1, type=int)
+    page = request.args.get("page", PAGE_DEFAULT, type=int)
 
     # Сортировка по имени и пагинация
     pagination = User.query.order_by(User.username).paginate(
-        page=page, per_page=100, error_out=False
+        page=page, per_page=PER_PAGE_ADMIN_DEFAULT, error_out=False
     )
     return render_template(
         "admin_users.html",
@@ -392,21 +405,21 @@ def toggle_user_status(id):
 
     # Защита: админ не может забанить сам себя
     if user.id == current_user.id:
-        flash("Вы не можете заблокировать самого себя!", "danger")
+        flash("Вы не можете заблокировать самого себя!", FLASH_DANGER)
         return redirect(url_for("admin_users"))
 
     # Переключение статуса (True -> False, False -> True)
     user.is_active = not user.is_active
-    status_text = "разблокирован" if user.is_active else "заблокирован"
+    status_text = STATUS_UNBLOCKED if user.is_active else STATUS_BLOCKED
 
     try:
         db.session.commit()
         flash(
-            f"Пользователь {user.username} успешно {status_text}.", "success"
+            f"Пользователь {user.username} успешно {status_text}.", FLASH_SUCCESS
         )
     except Exception as e:
         db.session.rollback()
-        flash(f"Ошибка: {str(e)}", "danger")
+        flash(f"Ошибка: {str(e)}", FLASH_DANGER)
 
     return redirect(url_for("admin_users"))
 
@@ -415,10 +428,10 @@ def toggle_user_status(id):
 @login_required
 def profile():
     """Страница профиля пользователя."""
-    page = request.args.get("page", 1, type=int)
+    page = request.args.get("page", PAGE_DEFAULT, type=int)
 
     reviews = current_user.reviews.order_by(Review.timestamp.desc()).paginate(
-        page=page, per_page=10, error_out=False
+        page=page, per_page=PER_PAGE_DEFAULT, error_out=False
     )
 
     return render_template("profile.html", user=current_user, reviews=reviews)
