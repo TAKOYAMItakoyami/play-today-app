@@ -1,0 +1,38 @@
+{% macro render_pagination(pagination, endpoint, id=None) %}
+  {% if pagination.pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+      <ul class="pagination justify-content-center">
+        
+        <!-- Кнопка "Назад" -->
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+          {% if pagination.has_prev %}
+            <a class="page-link" href="{{ url_for(endpoint, page=pagination.prev_num, id=id) if id else url_for(endpoint, page=pagination.prev_num) }}">Назад</a>
+          {% else %}
+            <span class="page-link">Назад</span>
+          {% endif %}
+        </li>
+
+        <!-- Номера страниц -->
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+          {% if page_num %}
+            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for(endpoint, page=page_num, id=id) if id else url_for(endpoint, page=page_num) }}">{{ page_num }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">...</span></li>
+          {% endif %}
+        {% endfor %}
+
+        <!-- Кнопка "Вперед" -->
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+          {% if pagination.has_next %}
+            <a class="page-link" href="{{ url_for(endpoint, page=pagination.next_num, id=id) if id else url_for(endpoint, page=pagination.next_num) }}">Вперед</a>
+          {% else %}
+            <span class="page-link">Вперед</span>
+          {% endif %}
+        </li>
+        
+      </ul>
+    </nav>
+  {% endif %}
+{% endmacro %}

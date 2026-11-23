@@ -1,4 +1,5 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
+{% from "pagination_macros.html" import render_pagination %}
 
 {% block title %} Мой профиль {% endblock %} 
 
@@ -18,17 +19,17 @@
               <span class="badge bg-info text-dark">Пользователь</span>
             {% endif %}
           </p>
-          <p class="small text-muted">Всего отзывов: {{ reviews|length }}</p>
+          <p class="small text-muted">Всего отзывов: {{ reviews.total }}</p>
         </div>
       </div>
     </div>
 
     <!-- Отзывы пользователя -->
     <div class="col-12 col-lg-8">
-      <h3 class="mb-3">Мои отзывы</h3>
+      <h3 class="mb-3">Мои отзывы ({{ reviews.total }})</h3>
 
-      {% if reviews %}
-        {% for review in reviews %}
+      {% if reviews.items %}
+        {% for review in reviews.items %}
           <div class="card mb-3 shadow-sm border-0">
             <div class="card-body">
               <div class="d-flex justify-content-between align-items-center mb-2">
@@ -53,6 +54,7 @@
             </div>
           </div>
         {% endfor %}
+        {{ render_pagination(reviews, 'profile') }}
       {% else %}
         <div class="alert alert-info">Вы пока не написали ни одного отзыва.</div>
       {% endif %}

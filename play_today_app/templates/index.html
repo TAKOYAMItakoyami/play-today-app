@@ -1,4 +1,5 @@
 {% extends "base.html" %} 
+{% from "pagination_macros.html" import render_pagination %}
 
 {% block title %}Играем в {{ boardgame.name }}{% endblock %} 
 
@@ -68,10 +69,10 @@
     <!-- Секция отзывов -->
     <div class="row mt-4">
       <div class="col-12 col-lg-9">
-        <h3 class="mb-3">Отзывы игроков ({{ reviews|length }})</h3>
+        <h3 class="mb-3">Отзывы игроков ({{ reviews.total }})</h3>
 
-        {% if reviews %}
-          {% for review in reviews %}
+        {% if reviews.items %}
+          {% for review in reviews.items %}
             <div class="card mb-3 shadow-sm border-0">
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
@@ -108,6 +109,7 @@
               </div>
             </div>
           {% endfor %}
+          {{ render_pagination(reviews, 'boardgame_view', id=boardgame.id) }}
         {% else %}
           <div class="alert alert-info">У этой игры пока нет отзывов. Станьте первым!</div>
         {% endif %}

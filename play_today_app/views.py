@@ -126,14 +126,16 @@ def index():
     """Главная страница: показывает случайную игру и её отзывы."""
     boardgames = Boardgame.query.all()
     if not boardgames:
-        return render_template("index.html", boardgame=None, reviews=[])
+        return render_template("index.html", boardgame=None, reviews=None)
 
     random_boardgame = random.choice(boardgames)
+    # На случай ручного ввода номера страницы с отзывами в адресе.
+    page = request.args.get("page", 1, type=int)
 
     reviews = (
         Review.query.filter_by(boardgame_id=random_boardgame.id)
         .order_by(Review.timestamp.desc())
-        .all()
+        .paginate(page=page, per_page=10, error_out=False)
     )
 
     return render_template(
@@ -332,10 +334,14 @@ async def edit_review(id):
 @app.route("/boardgames/<int:id>")
 def boardgame_view(id):
     boardgame = Boardgame.query.get_or_404(id)
+
+    # Получение номера страницы из URL (?page=...). По умолчанию — 1.
+    page = request.args.get("page", 1, type=int)
+
     reviews = (
         Review.query.filter_by(boardgame_id=boardgame.id)
         .order_by(Review.timestamp.desc())
-        .all()
+        .paginate(page=page, per_page=10, error_out=False)
     )
 
     return render_template("index.html", boardgame=boardgame, reviews=reviews)
@@ -391,5 +397,10 @@ def toggle_user_status(id):
 @login_required
 def profile():
     """Страница профиля пользователя."""
-    reviews = current_user.reviews.order_by(Review.timestamp.desc()).all()
+    page = request.args.get("page", 1, type=int)
+
+    reviews = current_user.reviews.order_by(Review.timestamp.desc()).paginate(
+        page=page, per_page=10, error_out=False
+    )
+
     return render_template("profile.html", user=current_user, reviews=reviews)
