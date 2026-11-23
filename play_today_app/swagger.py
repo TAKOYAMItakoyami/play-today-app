@@ -140,6 +140,17 @@ MESSAGE_DEFINITION = {
     },
 }
 
+JWT_ERROR_DEFINITION = {
+    "type": "object",
+    "properties": {
+        "msg": {
+            "type": "string",
+            "description": "Описание ошибки от Flask-JWT-Extended",
+            "example": "Missing Authorization Header",
+        }
+    },
+}
+
 REVIEW_CREATE_DEFINITION = {
     "type": "object",
     "required": ["text", "rating", "boardgame_id"],
@@ -211,6 +222,7 @@ SWAGGER_TEMPLATE = {
     },
     "definitions": {
         "Error": ERROR_DEFINITION,
+        "JwtError": JWT_ERROR_DEFINITION,
         "User": USER_DEFINITION,
         "Boardgame": BOARDGAME_DEFINITION,
         "BoardgamePatch": BOARDGAME_PATCH_DEFINITION,

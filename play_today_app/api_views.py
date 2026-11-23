@@ -334,9 +334,13 @@ def update_boardgame_api(id):
         schema:
           $ref: '#/definitions/Error'
       401:
-        description: Требуется JWT-токен
+        description: JWT-токен не передан
         schema:
-          $ref: '#/definitions/Error'
+          $ref: '#/definitions/JwtError'
+      422:
+        description: JWT-токен недействителен
+        schema:
+          $ref: '#/definitions/JwtError'
       403:
         description: Недостаточно прав
         schema:
@@ -394,9 +398,13 @@ def delete_boardgame_api(id):
       204:
         description: Игра удалена
       401:
-        description: Требуется JWT-токен
+        description: JWT-токен не передан
         schema:
-          $ref: '#/definitions/Error'
+          $ref: '#/definitions/JwtError'
+      422:
+        description: JWT-токен недействителен
+        schema:
+          $ref: '#/definitions/JwtError'
       403:
         description: Недостаточно прав
         schema:
@@ -456,9 +464,13 @@ def create_review():
         schema:
           $ref: '#/definitions/Error'
       401:
-        description: Требуется JWT-токен
+        description: JWT-токен не передан
         schema:
-          $ref: '#/definitions/Error'
+          $ref: '#/definitions/JwtError'
+      422:
+        description: JWT-токен недействителен
+        schema:
+          $ref: '#/definitions/JwtError'
       404:
         description: Игра не найдена
         schema:
@@ -542,9 +554,13 @@ def update_review(id):
         schema:
           $ref: '#/definitions/Error'
       401:
-        description: Требуется JWT-токен
+        description: JWT-токен не передан
         schema:
-          $ref: '#/definitions/Error'
+          $ref: '#/definitions/JwtError'
+      422:
+        description: JWT-токен недействителен
+        schema:
+          $ref: '#/definitions/JwtError'
       403:
         description: Чужой отзыв менять нельзя
         schema:
@@ -608,9 +624,13 @@ def delete_review_api(id):
       204:
         description: Отзыв удалён
       401:
-        description: Требуется JWT-токен
+        description: JWT-токен не передан
         schema:
-          $ref: '#/definitions/Error'
+          $ref: '#/definitions/JwtError'
+      422:
+        description: JWT-токен недействителен
+        schema:
+          $ref: '#/definitions/JwtError'
       403:
         description: Чужой отзыв удалять нельзя
         schema:
@@ -671,9 +691,13 @@ def toggle_user_status_api(id):
         schema:
           $ref: '#/definitions/Message'
       401:
-        description: Требуется JWT-токен
+        description: JWT-токен не передан
         schema:
-          $ref: '#/definitions/Error'
+          $ref: '#/definitions/JwtError'
+      422:
+        description: JWT-токен недействителен
+        schema:
+          $ref: '#/definitions/JwtError'
       403:
         description: Нужны права администратора
         schema:
@@ -733,9 +757,13 @@ def get_users_api():
             pagination:
               $ref: '#/definitions/Pagination'
       401:
-        description: Требуется JWT-токен
+        description: JWT-токен не передан
         schema:
-          $ref: '#/definitions/Error'
+          $ref: '#/definitions/JwtError'
+      422:
+        description: JWT-токен недействителен
+        schema:
+          $ref: '#/definitions/JwtError'
       403:
         description: Нужны права администратора
         schema:
@@ -787,9 +815,13 @@ def get_current_user_api():
             pagination:
               $ref: '#/definitions/Pagination'
       401:
-        description: Требуется JWT-токен
+        description: JWT-токен не передан
         schema:
-          $ref: '#/definitions/Error'
+          $ref: '#/definitions/JwtError'
+      422:
+        description: JWT-токен недействителен
+        schema:
+          $ref: '#/definitions/JwtError'
       404:
         description: Пользователь не найден
         schema:

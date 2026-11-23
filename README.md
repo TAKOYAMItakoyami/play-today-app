@@ -3,7 +3,10 @@
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=for-the-badge&logo=flask&logoColor=white)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-dev-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Swagger](https://img.shields.io/badge/Swagger-flasgger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)
 ![Bootstrap](https://img.shields.io/badge/Bootstrap-5.3-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)
 ![JWT](https://img.shields.io/badge/Auth-JWT-black?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
 ![Dropbox](https://img.shields.io/badge/Storage-Dropbox-0061FF?style=for-the-badge&logo=dropbox&logoColor=white)
@@ -17,12 +20,15 @@ Play Today — сервис отзывов о настольных играх д
 
 **Play Today** — сервис, который позволяет:
 
-- вести каталог настольных игр: добавлять, редактировать, скрывать из каталога;
+- вести каталог настольных игр: добавлять, редактировать, отмечать доступность для игр;
 - оставлять рейтинговые отзывы (оценка 1–10) с текстом и фотографиями;
 - загружать фотографии коробок игр напрямую в Dropbox;
 - видеть средний рейтинг и статистику по каждой игре;
 - управлять пользователями: блокировать и разблокировать аккаунты;
-- регистрироваться и аутентифицироваться через веб-интерфейс или JSON API (JWT).
+- регистрироваться и аутентифицироваться через веб-интерфейс или JSON API (JWT);
+- листать длинные списки: пагинация на фронте и в API;
+- запускать приложение локально (SQLite) или в Docker (PostgreSQL);
+- изучать и тестировать API через интерактивную Swagger-документацию.
 
 ### Основные сущности
 
@@ -43,15 +49,23 @@ Play Today — сервис отзывов о настольных играх д
 - обычные пользователи могут читать отзывы, оставлять и редактировать свои;
 - администратор (`is_admin = true`) может создавать, редактировать и удалять игры, а также блокировать/разблокировать пользователей;
 - заблокированный пользователь (`is_active = false`) не может войти в систему;
-- при удалении пользователя отзывы остаются в системе, но автор отображается как «Удаленный пользователь» (`user_id` обнуляется через `ondelete='SET NULL'`).
+- отдельного эндпоинта удаления пользователя нет; если удалять пользователя
+  напрямую в БД, его отзывы сохранятся: `user_id` обнулится благодаря
+  `ondelete='SET NULL'`, а автор в интерфейсе отрисуется как
+  «Удаленный пользователь».
 
 **Настольные игры**
 
 - название уникально (1–128 символов);
 - описание обязательно;
 - `min_players` ≥ 1, `max_players` ≥ 1, `min_age` ≥ 0, `playtime_minutes` ≥ 1;
-- обычные пользователи видят все игры в каталоге, но создавать и редактировать может только админ;
-- при удалении игры все её отзывы удаляются автоматически (cascade).
+- `is_available` — это статус «доступна для игр», он показывается бейджем
+  🟢/🔴 на карточке игры и в админ-списке; на доступность игры в
+  случайной выдаче главной страницы или в API он **не** влияет;
+- добавлять, редактировать и удалять игры может только администратор,
+  читать — все;
+- при удалении игры через приложение все её отзывы удаляются автоматически
+  (`cascade='all, delete-orphan'` в ORM SQLAlchemy).
 
 **Отзывы**
 
@@ -69,14 +83,40 @@ Play Today — сервис отзывов о настольных играх д
 Интерактивная документация API собрана через **flasgger** и доступна после
 запуска приложения:
 
-- Swagger UI — `http://127.0.0.1:5000/apidocs`
-- спецификация OpenAPI 2.0 — `http://127.0.0.1:5000/apispec_1.json`
+- Swagger UI — `http://127.0.0.1:5000/apidocs` (локально) или `http://127.0.0.1:8080/apidocs` (Docker)
+- спецификация OpenAPI 2.0 — `http://127.0.0.1:5000/apispec_1.json` (локально) или `http://127.0.0.1:8080/apispec_1.json` (Docker)
 
 Описание эндпоинтов лежит в YAML-блоках внутри docstring в `api_views.py`,
 а переиспользуемые схемы (`User`, `Boardgame`, `Review`, `Pagination`,
-`Credentials`, `Error` и др.) и определение JWT-авторизации — в
+`Credentials`, `Error`, `JwtError` и др.) и определение JWT-авторизации — в
 `play_today_app/swagger.py`. Чтобы выполнить авторизованный запрос из UI,
 нажмите **Authorize** и введите `Bearer <access_token>`.
+
+> **Формат ошибок.** Ошибки самого приложения (`InvalidAPIUsage`) всегда
+> приходят как `{"message": "..."}`. Ошибки валидации токена генерирует
+> Flask-JWT-Extended, и у них другой формат и коды:
+>
+> | Ситуация                    | Код | Тело ответа                             |
+> | --------------------------- | --- | --------------------------------------- |
+> | Заголовок `Authorization` не передан | 401 | `{"msg": "Missing Authorization Header"}` |
+> | Токен повреждён / просрочен / неверная подпись | 422 | `{"msg": "Not enough segments"}` и подобные |
+>
+> Поэтому защищённые эндпоинты отдают **401** (нет токена) или **422**
+> (токен недействителен), а не 403. Права проверяются уже после успешной
+> валидации токена — тогда и только тогда приходит 403 с `message`.
+
+### Пагинация в API
+
+Списочные GET-эндпоинты (`/api/boardgames/`, `/api/boardgames/<id>/`,
+`/api/users/`, `/api/users/me/`) принимают два query-параметра:
+
+| Параметр   | По умолчанию | Назначение              |
+| ---------- | ------------ | ----------------------- |
+| `page`     | `1`          | Номер страницы          |
+| `per_page` | `10`         | Элементов на странице   |
+
+В ответ вместе с данными всегда возвращается блок `pagination`
+(см. примеры ниже).
 
 ### Аутентификация и пользователи
 
@@ -111,6 +151,15 @@ Play Today — сервис отзывов о настольных играх д
 
 ## Веб-интерфейс
 
+### Пагинация
+
+Во всех списках (отзывы на странице игры, главная, профиль, админ-панель)
+используется макрос `render_pagination` из `pagination_macros.html`.
+Элементы разбиваются постранично:
+
+- главная / страница игры / профиль — **10** отзывов на страницу;
+- админ-панель (игры, пользователи) — **100** элементов на страницу.
+
 ### Основные страницы
 
 | Путь                       | Описание                                        | Доступ           |
@@ -118,7 +167,7 @@ Play Today — сервис отзывов о настольных играх д
 | `/`                        | Главная: случайная игра + отзывы                | Все              |
 | `/register`                | Регистрация                                     | Гости            |
 | `/login`                   | Вход                                            | Гости            |
-| `/logout`                  | Выход                                           | Авторизованные   |
+| `/logout`                  | Выход (POST)                                  | Авторизованные   |
 | `/boardgames/<id>`         | Страница конкретной игры с отзывами             | Все              |
 | `/add_review`              | Форма добавления отзыва                         | Авторизованные   |
 | `/edit_review/<id>`        | Редактирование отзыва                           | Автор или админ  |
@@ -144,6 +193,7 @@ Play Today — сервис отзывов о настольных играх д
 
 - Python 3.12
 - pip
+- (опционально) Docker и Docker Compose
 
 ### 1. Клонирование и переменные окружения
 
@@ -161,15 +211,32 @@ cp .env.example .env
 В `.env.example` уже описаны все необходимые переменные:
 
 ```env
+# --- Настройки приложения ---
 FLASK_APP=play_today_app
-FLASK_DEBUG=1
-DATABASE_URI=sqlite:///my_db.sqlite3
+FLASK_DEBUG=0
 SECRET_KEY=very_secret_key
 
+# --- Настройки базы данных ---
+# ВАРИАНТ 1: Для запуска в Docker (PostgreSQL)
+# Обратите внимание: хост - это "db" (имя сервиса в docker-compose.yml)
+DATABASE_URI=postgresql://play_today_user:play_today_password@db:5432/play_today_db
+
+# ВАРИАНТ 2: Для локальной разработки без Docker (SQLite)
+# Чтобы использовать этот вариант, закомментируйте строку выше и раскомментируйте эту:
+# DATABASE_URI=sqlite:///my_db.sqlite3
+
+# --- Реквизиты для контейнера PostgreSQL (нужны только для Docker) ---
+# Эти значения должны совпадать с данными в DATABASE_URI
+POSTGRES_USER=play_today_user
+POSTGRES_PASSWORD=play_today_password
+POSTGRES_DB=play_today_db
+
+# --- Dropbox (облачный сервис для добавления картинок к отзывам) ---
 DROPBOX_APP_KEY=dropbox_app_key
 DROPBOX_APP_SECRET=dropbox_app_secret
 DROPBOX_REFRESH_TOKEN=dropbox_refresh_token
 
+# --- Первый суперпользователь (создается по команде flask create_first_superuser) ---
 ADMIN_USERNAME=admin_username
 ADMIN_PASSWORD=admin_password
 ```
@@ -177,9 +244,12 @@ ADMIN_PASSWORD=admin_password
 | Переменная              | По умолчанию              | Назначение                                |
 | ----------------------- | ------------------------- | ----------------------------------------- |
 | `FLASK_APP`             | `play_today_app`          | Имя приложения Flask                      |
-| `FLASK_DEBUG`           | `1`                       | Режим отладки                             |
-| `DATABASE_URI`          | `sqlite:///my_db.sqlite3` | Строка подключения к БД                   |
+| `FLASK_DEBUG`           | `0`                       | Режим отладки                             |
+| `DATABASE_URI`          | PostgreSQL (Docker)       | Строка подключения к БД                   |
 | `SECRET_KEY`            | `very_secret_key`         | Секретный ключ для подписи сессий и JWT   |
+| `POSTGRES_USER`         | `play_today_user`         | Имя пользователя PostgreSQL (Docker)      |
+| `POSTGRES_PASSWORD`     | `play_today_password`     | Пароль PostgreSQL (Docker)                |
+| `POSTGRES_DB`           | `play_today_db`           | Имя базы данных PostgreSQL (Docker)       |
 | `DROPBOX_APP_KEY`       | —                         | OAuth 2.0 App Key Dropbox                 |
 | `DROPBOX_APP_SECRET`    | —                         | OAuth 2.0 App Secret Dropbox              |
 | `DROPBOX_REFRESH_TOKEN` | —                         | Refresh-токен для обновления access_token |
@@ -226,15 +296,57 @@ flask load_boardgames boardgames.csv
 
 ### 6. Запуск
 
+**Локально (SQLite):**
+
 ```bash
 flask run --reload
 ```
 
 Сервер доступен по адресу `http://127.0.0.1:5000`.
 
+**В Docker (PostgreSQL):**
+
+```bash
+docker compose up --build
+```
+
+Сервер доступен по адресу `http://127.0.0.1:8080`.
+
+Docker-конфигурация состоит из двух сервисов:
+
+| Сервис    | Образ           | Порт (хост:контейнер) | Назначение                                     |
+| --------- | --------------- | ---------------------- | ---------------------------------------------- |
+| `db`      | postgres:16     | (5432, не наружу)      | База данных PostgreSQL с томом `pg_data`        |
+| `backend` | (сборка из .)   | `8080:8000`            | Приложение: `flask db upgrade` + Gunicorn + UvicornWorker |
+
+ASGI-обёртка `asgi.py` и Uvicorn-воркеры нужны из-за асинхронных веб-маршрутов
+(`/add_review`, `/edit_review`): они грузят фото в Dropbox через `aiohttp`.
+
+Перед запуском Docker-сервисов убедитесь, что в `.env` задана строка
+`DATABASE_URI` с хостом `db` (а не `localhost`).
+
+> **Примечание:** `docker compose up` автоматически выполняет
+> `flask db upgrade`, но **не** создаёт администратора. После первого
+> запуска повторите шаги 4 и 5 из локальной установки — только внутри
+> контейнера, через `docker compose exec backend`:
+>
+> ```bash
+> # шаг 4 (обязательно): создать администратора из ADMIN_USERNAME/ADMIN_PASSWORD
+> docker compose exec backend flask create_first_superuser
+>
+> # шаг 5 (опционально): загрузить тестовые игры из boardgames.csv
+> docker compose exec backend flask load_boardgames boardgames.csv
+> ```
+>
+> Файл `boardgames.csv` уже входит в образ (`COPY . .` в `Dockerfile`,
+> рабочая директория `/app`), поэтому копировать его в контейнер не нужно.
+
 ## Использование
 
 ### Примеры запросов
+
+Все примеры ниже используют адрес локального сервера (`http://127.0.0.1:5000`).
+При запуске в Docker замените его на `http://127.0.0.1:8080`.
 
 **Зарегистрироваться:**
 
@@ -370,7 +482,15 @@ curl http://127.0.0.1:5000/api/users/me/ \
       "is_available": true,
       "average_rating": 8.5
     }
-  ]
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 10,
+    "total_pages": 4,
+    "total_items": 37,
+    "has_next": true,
+    "has_prev": false
+  }
 }
 ```
 
@@ -399,7 +519,15 @@ curl http://127.0.0.1:5000/api/users/me/ \
       "boardgame_id": 1,
       "boardgame_name": "Каркассон"
     }
-  ]
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 10,
+    "total_pages": 2,
+    "total_items": 15,
+    "has_next": true,
+    "has_prev": false
+  }
 }
 ```
 
@@ -459,7 +587,15 @@ curl http://127.0.0.1:5000/api/users/me/ \
       "boardgame_id": 1,
       "boardgame_name": "Каркассон"
     }
-  ]
+  ],
+  "pagination": {
+    "page": 1,
+    "per_page": 10,
+    "total_pages": 1,
+    "total_items": 1,
+    "has_next": false,
+    "has_prev": false
+  }
 }
 ```
 
@@ -543,6 +679,86 @@ curl http://127.0.0.1:5000/api/users/me/ \
 }
 ```
 
+**Ошибка — не указаны учётные данные (`400 Bad Request`):**
+
+```json
+{
+  "message": "Не указаны username или password"
+}
+```
+
+**Ошибка — некорректный логин (`400 Bad Request`):**
+
+```json
+{
+  "message": "Логин должен быть от 3 до 64 символов"
+}
+```
+
+**Ошибка — короткий пароль (`400 Bad Request`):**
+
+```json
+{
+  "message": "Пароль должен быть не короче 6 символов"
+}
+```
+
+**Ошибка — название игры уже занято (`400 Bad Request`):**
+
+```json
+{
+  "message": "Игра с таким названием уже существует"
+}
+```
+
+**Ошибка — нет прав администратора (`403 Forbidden`):**
+
+```json
+{
+  "message": "Требуются права администратора"
+}
+```
+
+**Ошибка — нельзя удалить чужой отзыв (`403 Forbidden`):**
+
+```json
+{
+  "message": "Вы не можете удалить чужой отзыв"
+}
+```
+
+**Ошибка — пользователь не найден (`404 Not Found`):**
+
+```json
+{
+  "message": "Пользователь не найден"
+}
+```
+
+**Ошибка — отзыв не найден (`404 Not Found`):**
+
+```json
+{
+  "message": "Отзыв с указанным id не найден"
+}
+```
+
+**Ошибка — токен не передан (`401 Unauthorized`):**
+
+```json
+{
+  "msg": "Missing Authorization Header"
+}
+```
+
+**Ошибка — токен недействителен (`422 Unprocessable Entity`):**
+
+```json
+{
+  "msg": "Not enough segments"
+}
+```
+
 ## Структура проекта
 
 ```
@@ -550,14 +766,15 @@ play-today-app/
 ├── play_today_app/           # Основное приложение
 │   ├── __init__.py           # Точка входа: создание Flask-приложения, инициализация расширений
 │   ├── models.py             # SQLAlchemy-модели: User, Boardgame, Review
-│   ├── views.py              # Веб-роуты (Jinja2 + Bootstrap)
-│   ├── api_views.py          # JSON API (JWT, REST)
+│   ├── views.py              # Веб-роуты (Jinja2 + Bootstrap, async-маршруты для загрузки фото)
+│   ├── api_views.py          # JSON API (JWT, REST, Swagger-аннотации)
+│   ├── swagger.py            # Шаблон спецификации Swagger (схемы, JWT-auth)
+│   ├── constants.py          # Константы: лимиты, сообщения об ошибках, параметры
 │   ├── forms.py              # WTForms (регистрация, вход, отзывы, игры)
 │   ├── dropbox.py            # Асинхронная загрузка фото в Dropbox (aiohttp)
 │   ├── cli_commands.py       # CLI: load_boardgames, create_first_superuser
-│   ├── swagger.py            # Шаблон спецификации Swagger (схемы, JWT-auth)
 │   ├── error_handlers.py     # Обработчики ошибок (403, 404, 500, InvalidAPIUsage)
-│   ├── templates/            # Jinja2-шаблоны (14 HTML-файлов)
+│   ├── templates/            # Jinja2-шаблоны (15 HTML-файлов)
 │   │   ├── base.html         # Базовый шаблон с Bootstrap 5 (CDN)
 │   │   ├── header.html       # Навигация с выпадающим меню админа
 │   │   ├── footer.html       # Подвал
@@ -569,6 +786,7 @@ play-today-app/
 │   │   ├── admin_boardgames.html # Панель управления играми
 │   │   ├── admin_users.html  # Панель управления пользователями
 │   │   ├── profile.html      # Профиль пользователя
+│   │   ├── pagination_macros.html # Макрос render_pagination для Bootstrap-пагинации
 │   │   └── 403.html, 404.html, 500.html
 │   └── static/               # Статические файлы
 │       ├── css/              # style.css (bootstrap.min.css лежит, но не используется)
@@ -578,12 +796,14 @@ play-today-app/
 │   ├── alembic.ini
 │   ├── env.py
 │   └── versions/
-│       └── 2bfb1cd08c60_initial_migration.py
 ├── .flake8                   # Конфигурация flake8 (лимиты, игноримые правила, исключения)
-├── .env.example              # Шаблон переменных окружения
+├── .env.example              # Шаблон переменных окружения (PostgreSQL для Docker, SQLite для разработки)
 ├── .gitignore                # Исключения (venv, .env, instance/, *.sqlite3)
 ├── boardgames.csv            # Тестовые данные для CLI
 ├── settings.py               # Конфигурация (Config)
+├── asgi.py                   # ASGI-обёртка для запуска через Uvicorn/Gunicorn
+├── Dockerfile                # Сборка образа приложения (python:3.12-slim)
+├── docker-compose.yml        # Сервисы: backend (порт 8080) + PostgreSQL 16
 ├── pyproject.toml            # Конфигурация black, isort, mypy
 ├── requirements.txt          # Прикладные зависимости
 ├── requirements-dev.txt      # + линтеры (black, flake8, isort)
@@ -649,12 +869,16 @@ isort .
 | [Flask-JWT-Extended](https://flask-jwt-extended.readthedocs.io/) | JWT-аутентификация |
 | [flasgger](https://github.com/flasgger/flasgger) | Интерактивная Swagger UI-документация |
 | [SQLAlchemy](https://www.sqlalchemy.org/) | SQL-конвейер и ORM |
-| [SQLite](https://www.sqlite.org/) | Локальная база данных |
+| [PostgreSQL](https://www.postgresql.org/) | Основная база данных (прод, Docker) |
+| [SQLite](https://www.sqlite.org/) | База данных для локальной разработки |
+| [Gunicorn](https://gunicorn.org/) | Процесс-менеджер с ASGI-воркерами (Docker) |
+| [Uvicorn](https://www.uvicorn.org/) | ASGI-сервер для работы через GunicornWorker |
 | [WTForms](https://wtforms.readthedocs.io/) | Валидация форм |
 | [Jinja2](https://jinja.palletsprojects.com/) | Шаблоны |
 | [Bootstrap 5](https://getbootstrap.com/) | CSS-фреймворк для фронтенда (CDN) |
 | [Dropbox API](https://www.dropbox.com/developers) | Облачное хранилище для фото |
 | [aiohttp](https://docs.aiohttp.org/) | Асинхронный HTTP-клиент для Dropbox |
+| [Docker](https://www.docker.com/) | Контейнеризация и запуск в один шаг |
 | [black](https://black.readthedocs.io/) | Форматирование кода |
 | [isort](https://pycqa.github.io/isort/) | Сортировка импортов |
 | [flake8](https://flake8.pycqa.org/) | Проверка стиля кода |
