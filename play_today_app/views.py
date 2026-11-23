@@ -352,8 +352,17 @@ def boardgame_view(id):
 @admin_required
 def admin_boardgames():
     """Страница управления всеми играми (только для админа)."""
-    boardgames = Boardgame.query.order_by(Boardgame.name).all()
-    return render_template("admin_boardgames.html", boardgames=boardgames)
+    page = request.args.get("page", 1, type=int)
+
+    # Сортировка по имени и пагинация
+    pagination = Boardgame.query.order_by(Boardgame.name).paginate(
+        page=page, per_page=100, error_out=False
+    )
+    return render_template(
+        "admin_boardgames.html",
+        boardgames=pagination.items,
+        pagination=pagination
+    )
 
 
 @app.route("/admin/users")
@@ -361,8 +370,17 @@ def admin_boardgames():
 @admin_required
 def admin_users():
     """Страница управления пользователями (только для админа)."""
-    users = User.query.order_by(User.username).all()
-    return render_template("admin_users.html", users=users)
+    page = request.args.get("page", 1, type=int)
+
+    # Сортировка по имени и пагинация
+    pagination = User.query.order_by(User.username).paginate(
+        page=page, per_page=100, error_out=False
+    )
+    return render_template(
+        "admin_users.html",
+        users=pagination.items,
+        pagination=pagination
+    )
 
 
 @app.route("/admin/toggle_user_status/<int:id>", methods=["POST"])

@@ -13,6 +13,18 @@ from .error_handlers import InvalidAPIUsage
 from .models import Boardgame, Review, User
 
 
+def get_pagination_meta(pagination):
+    """Вспомогательная функция для формирования метаданных пагинации."""
+    return {
+        "page": pagination.page,
+        "per_page": pagination.per_page,
+        "total_pages": pagination.pages,
+        "total_items": pagination.total,
+        "has_next": pagination.has_next,
+        "has_prev": pagination.has_prev,
+    }
+
+
 def admin_required_api(function):
     """Декоратор: требует JWT токен и права администратора."""
 
@@ -111,32 +123,47 @@ def api_login():
 
 @app.route("/api/boardgames/", methods=["GET"])
 def get_boardgames():
-    """Получить список всех игр."""
-    boardgames = Boardgame.query.all()
+    """Получить список всех игр (с пагинацией)."""
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+
+    pagination = Boardgame.query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
     return (
-        jsonify({"boardgames": [game.to_dict() for game in boardgames]}),
+        jsonify({
+            "boardgames": [game.to_dict() for game in pagination.items],
+            "pagination": get_pagination_meta(pagination)
+        }),
         HTTPStatus.OK,
     )
 
 
 @app.route("/api/boardgames/<int:id>/", methods=["GET"])
 def get_boardgame(id):
-    """Получить информацию об игре и её отзывах."""
+    """Получить информацию об игре и её отзывах (с пагинацией)."""
     boardgame = Boardgame.query.get(id)
     if not boardgame:
         raise InvalidAPIUsage(
             "Игра с указанным id не найдена", HTTPStatus.NOT_FOUND
         )
 
-    reviews = Review.query.filter_by(boardgame_id=boardgame.id).all()
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+
+    pagination = (
+        Review.query.filter_by(boardgame_id=boardgame.id)
+        .order_by(Review.timestamp.desc())
+        .paginate(page=page, per_page=per_page, error_out=False)
+    )
 
     return (
-        jsonify(
-            {
-                "boardgame": boardgame.to_dict(),
-                "reviews": [review.to_dict() for review in reviews],
-            }
-        ),
+        jsonify({
+            "boardgame": boardgame.to_dict(),
+            "reviews": [review.to_dict() for review in pagination.items],
+            "pagination": get_pagination_meta(pagination)
+        }),
         HTTPStatus.OK,
     )
 
@@ -347,10 +374,19 @@ def toggle_user_status_api(id):
 @app.route("/api/users/", methods=["GET"])
 @admin_required_api
 def get_users_api():
-    """Получить список всех пользователей (только админ)."""
-    users = User.query.all()
+    """Получить список всех пользователей (только админ, с пагинацией)."""
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+
+    pagination = User.query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
     return (
-        jsonify({"users": [user.to_dict() for user in users]}),
+        jsonify({
+            "users": [user.to_dict() for user in pagination.items],
+            "pagination": get_pagination_meta(pagination)
+        }),
         HTTPStatus.OK,
     )
 
@@ -358,16 +394,25 @@ def get_users_api():
 @app.route("/api/users/me/", methods=["GET"])
 @jwt_required()
 def get_current_user_api():
-    """Получить информацию о себе и свои отзывы."""
+    """Получить информацию о себе и свои отзывы (с пагинацией)."""
     current_user_id = int(get_jwt_identity())
     user = User.query.get(current_user_id)
 
     if not user:
         raise InvalidAPIUsage("Пользователь не найден", HTTPStatus.NOT_FOUND)
 
-    user_reviews = [review.to_dict() for review in user.reviews]
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 10, type=int)
+
+    pagination = user.reviews.order_by(Review.timestamp.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
 
     return (
-        jsonify({"user": user.to_dict(), "reviews": user_reviews}),
+        jsonify({
+            "user": user.to_dict(),
+            "reviews": [review.to_dict() for review in pagination.items],
+            "pagination": get_pagination_meta(pagination)
+        }),
         HTTPStatus.OK,
     )
