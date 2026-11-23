@@ -1,3 +1,4 @@
+from flasgger import Swagger
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from flask_login import LoginManager
@@ -8,6 +9,7 @@ from flask_wtf.csrf import CSRFProtect
 from settings import Config
 
 from .constants import FLASH_WARNING, JWT_ACCESS_TOKEN_EXPIRES, RATING_MAX
+from .swagger import SWAGGER_TEMPLATE
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -49,3 +51,6 @@ def load_user(user_id):
 
 
 from . import api_views, cli_commands, error_handlers, models, views  # noqa
+
+# Swagger UI доступен на /apidocs, спецификация — на /apispec_1.json.
+swagger = Swagger(app, template=SWAGGER_TEMPLATE)

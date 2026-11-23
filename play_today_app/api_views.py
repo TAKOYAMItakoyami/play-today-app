@@ -74,7 +74,34 @@ def admin_required_api(function):
 @app.route("/api/register/", methods=["POST"])
 @csrf.exempt
 def api_register():
-    """Регистрация нового пользователя через API."""
+    """Регистрация нового пользователя через API.
+
+    ---
+    tags:
+      - Auth
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Credentials'
+    responses:
+      201:
+        description: Пользователь создан
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            access_token:
+              type: string
+            user:
+              $ref: '#/definitions/User'
+      400:
+        description: Ошибка валидации
+        schema:
+          $ref: '#/definitions/Error'
+    """
     data = request.get_json(silent=True)
 
     if not data or "username" not in data or "password" not in data:
@@ -124,7 +151,35 @@ def api_register():
 @app.route("/api/login/", methods=["POST"])
 @csrf.exempt
 def api_login():
-    """Авторизация в API и выдача JWT-токена."""
+    """Авторизация в API и выдача JWT-токена.
+
+    ---
+    tags:
+      - Auth
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Credentials'
+    responses:
+      200:
+        description: Успешный вход
+        schema:
+          $ref: '#/definitions/Token'
+      400:
+        description: Ошибка валидации
+        schema:
+          $ref: '#/definitions/Error'
+      401:
+        description: Неверный логин или пароль
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Пользователь заблокирован
+        schema:
+          $ref: '#/definitions/Error'
+    """
     data = request.get_json(silent=True)
 
     if not data or "username" not in data or "password" not in data:
@@ -146,7 +201,27 @@ def api_login():
 
 @app.route("/api/boardgames/", methods=["GET"])
 def get_boardgames():
-    """Получить список всех игр (с пагинацией)."""
+    """Получить список всех игр (с пагинацией).
+
+    ---
+    tags:
+      - Boardgames
+    parameters:
+      - $ref: '#/parameters/Page'
+      - $ref: '#/parameters/PerPage'
+    responses:
+      200:
+        description: Страница со списком игр
+        schema:
+          type: object
+          properties:
+            boardgames:
+              type: array
+              items:
+                $ref: '#/definitions/Boardgame'
+            pagination:
+              $ref: '#/definitions/Pagination'
+    """
     page = request.args.get("page", PAGE_DEFAULT, type=int)
     per_page = request.args.get("per_page", PER_PAGE_DEFAULT, type=int)
 
@@ -167,7 +242,38 @@ def get_boardgames():
 
 @app.route("/api/boardgames/<int:id>/", methods=["GET"])
 def get_boardgame(id):
-    """Получить информацию об игре и её отзывах (с пагинацией)."""
+    """Получить информацию об игре и её отзывах (с пагинацией).
+
+    ---
+    tags:
+      - Boardgames
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: Идентификатор игры
+      - $ref: '#/parameters/Page'
+      - $ref: '#/parameters/PerPage'
+    responses:
+      200:
+        description: Игра и страница её отзывов
+        schema:
+          type: object
+          properties:
+            boardgame:
+              $ref: '#/definitions/Boardgame'
+            reviews:
+              type: array
+              items:
+                $ref: '#/definitions/Review'
+            pagination:
+              $ref: '#/definitions/Pagination'
+      404:
+        description: Игра не найдена
+        schema:
+          $ref: '#/definitions/Error'
+    """
     boardgame = Boardgame.query.get(id)
     if not boardgame:
         raise InvalidAPIUsage(BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
@@ -197,7 +303,49 @@ def get_boardgame(id):
 @csrf.exempt  # Отключает CSRF для API
 @admin_required_api
 def update_boardgame_api(id):
-    """Обновить игру (частично)."""
+    """Обновить игру (частично).
+
+    ---
+    tags:
+      - Boardgames
+    security:
+      - Bearer: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: Идентификатор игры
+      - name: body
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/BoardgamePatch'
+    responses:
+      200:
+        description: Обновлённая игра
+        schema:
+          type: object
+          properties:
+            boardgame:
+              $ref: '#/definitions/Boardgame'
+      400:
+        description: Нет JSON-тела или название уже занято
+        schema:
+          $ref: '#/definitions/Error'
+      401:
+        description: Требуется JWT-токен
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Недостаточно прав
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Игра не найдена
+        schema:
+          $ref: '#/definitions/Error'
+    """
     boardgame = Boardgame.query.get(id)
     if not boardgame:
         raise InvalidAPIUsage(BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
@@ -229,7 +377,39 @@ def update_boardgame_api(id):
 @csrf.exempt
 @admin_required_api
 def delete_boardgame_api(id):
-    """Удалить игру и все её отзывы."""
+    """Удалить игру и все её отзывы.
+
+    ---
+    tags:
+      - Boardgames
+    security:
+      - Bearer: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: Идентификатор игры
+    responses:
+      204:
+        description: Игра удалена
+      401:
+        description: Требуется JWT-токен
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Недостаточно прав
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Игра не найдена
+        schema:
+          $ref: '#/definitions/Error'
+      500:
+        description: Ошибка базы данных
+        schema:
+          $ref: '#/definitions/Error'
+    """
     boardgame = Boardgame.query.get(id)
     if not boardgame:
         raise InvalidAPIUsage(BOARDGAME_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
@@ -250,6 +430,44 @@ def delete_boardgame_api(id):
 @csrf.exempt
 @jwt_required()
 def create_review():
+    """Создать отзыв на игру.
+
+    ---
+    tags:
+      - Reviews
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/ReviewCreate'
+    responses:
+      201:
+        description: Отзыв создан
+        schema:
+          type: object
+          properties:
+            review:
+              $ref: '#/definitions/Review'
+      400:
+        description: Нет JSON-тела или не хватает полей
+        schema:
+          $ref: '#/definitions/Error'
+      401:
+        description: Требуется JWT-токен
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Игра не найдена
+        schema:
+          $ref: '#/definitions/Error'
+      500:
+        description: Ошибка базы данных
+        schema:
+          $ref: '#/definitions/Error'
+    """
     data = request.get_json(silent=True)
 
     if data is None:
@@ -293,6 +511,49 @@ def create_review():
 @csrf.exempt
 @jwt_required()
 def update_review(id):
+    """Изменить свой отзыв (или любой — для администратора).
+
+    ---
+    tags:
+      - Reviews
+    security:
+      - Bearer: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: Идентификатор отзыва
+      - name: body
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/ReviewPatch'
+    responses:
+      200:
+        description: Обновлённый отзыв
+        schema:
+          type: object
+          properties:
+            review:
+              $ref: '#/definitions/Review'
+      400:
+        description: В запросе отсутствует JSON тело
+        schema:
+          $ref: '#/definitions/Error'
+      401:
+        description: Требуется JWT-токен
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Чужой отзыв менять нельзя
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Отзыв не найден
+        schema:
+          $ref: '#/definitions/Error'
+    """
     review = Review.query.get(id)
     if not review:
         raise InvalidAPIUsage(REVIEW_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
@@ -330,6 +591,39 @@ def update_review(id):
 @csrf.exempt
 @jwt_required()
 def delete_review_api(id):
+    """Удалить свой отзыв (или любой — для администратора).
+
+    ---
+    tags:
+      - Reviews
+    security:
+      - Bearer: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: Идентификатор отзыва
+    responses:
+      204:
+        description: Отзыв удалён
+      401:
+        description: Требуется JWT-токен
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Чужой отзыв удалять нельзя
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Отзыв не найден
+        schema:
+          $ref: '#/definitions/Error'
+      500:
+        description: Ошибка базы данных
+        schema:
+          $ref: '#/definitions/Error'
+    """
     review = Review.query.get(id)
     if not review:
         raise InvalidAPIUsage(REVIEW_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
@@ -358,7 +652,37 @@ def delete_review_api(id):
 @csrf.exempt
 @admin_required_api
 def toggle_user_status_api(id):
-    """Забанить/Разбанить пользователя."""
+    """Забанить/Разбанить пользователя.
+
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: Идентификатор пользователя
+    responses:
+      200:
+        description: Результат изменения статуса
+        schema:
+          $ref: '#/definitions/Message'
+      401:
+        description: Требуется JWT-токен
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Нужны права администратора
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Пользователь не найден
+        schema:
+          $ref: '#/definitions/Error'
+    """
     user = User.query.get(id)
     if not user:
         raise InvalidAPIUsage(USER_NOT_FOUND_ERROR, HTTPStatus.NOT_FOUND)
@@ -386,7 +710,37 @@ def toggle_user_status_api(id):
 @app.route("/api/users/", methods=["GET"])
 @admin_required_api
 def get_users_api():
-    """Получить список всех пользователей (только админ, с пагинацией)."""
+    """Получить список всех пользователей (только админ, с пагинацией).
+
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - $ref: '#/parameters/Page'
+      - $ref: '#/parameters/PerPage'
+    responses:
+      200:
+        description: Страница со списком пользователей
+        schema:
+          type: object
+          properties:
+            users:
+              type: array
+              items:
+                $ref: '#/definitions/User'
+            pagination:
+              $ref: '#/definitions/Pagination'
+      401:
+        description: Требуется JWT-токен
+        schema:
+          $ref: '#/definitions/Error'
+      403:
+        description: Нужны права администратора
+        schema:
+          $ref: '#/definitions/Error'
+    """
     page = request.args.get("page", PAGE_DEFAULT, type=int)
     per_page = request.args.get("per_page", PER_PAGE_DEFAULT, type=int)
 
@@ -408,7 +762,39 @@ def get_users_api():
 @app.route("/api/users/me/", methods=["GET"])
 @jwt_required()
 def get_current_user_api():
-    """Получить информацию о себе и свои отзывы (с пагинацией)."""
+    """Получить информацию о себе и свои отзывы (с пагинацией).
+
+    ---
+    tags:
+      - Users
+    security:
+      - Bearer: []
+    parameters:
+      - $ref: '#/parameters/Page'
+      - $ref: '#/parameters/PerPage'
+    responses:
+      200:
+        description: Профиль и страница отзывов
+        schema:
+          type: object
+          properties:
+            user:
+              $ref: '#/definitions/User'
+            reviews:
+              type: array
+              items:
+                $ref: '#/definitions/Review'
+            pagination:
+              $ref: '#/definitions/Pagination'
+      401:
+        description: Требуется JWT-токен
+        schema:
+          $ref: '#/definitions/Error'
+      404:
+        description: Пользователь не найден
+        schema:
+          $ref: '#/definitions/Error'
+    """
     current_user_id = int(get_jwt_identity())
     user = User.query.get(current_user_id)
 

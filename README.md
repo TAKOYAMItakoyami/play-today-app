@@ -66,6 +66,18 @@ Play Today — сервис отзывов о настольных играх д
 
 Все не-GET эндпоинты отключены от CSRF-защиты (`@csrf.exempt`) и работают с JSON.
 
+Интерактивная документация API собрана через **flasgger** и доступна после
+запуска приложения:
+
+- Swagger UI — `http://127.0.0.1:5000/apidocs`
+- спецификация OpenAPI 2.0 — `http://127.0.0.1:5000/apispec_1.json`
+
+Описание эндпоинтов лежит в YAML-блоках внутри docstring в `api_views.py`,
+а переиспользуемые схемы (`User`, `Boardgame`, `Review`, `Pagination`,
+`Credentials`, `Error` и др.) и определение JWT-авторизации — в
+`play_today_app/swagger.py`. Чтобы выполнить авторизованный запрос из UI,
+нажмите **Authorize** и введите `Bearer <access_token>`.
+
 ### Аутентификация и пользователи
 
 | Метод    | Путь                                 | Описание                                            | Доступ           |
@@ -543,6 +555,7 @@ play-today-app/
 │   ├── forms.py              # WTForms (регистрация, вход, отзывы, игры)
 │   ├── dropbox.py            # Асинхронная загрузка фото в Dropbox (aiohttp)
 │   ├── cli_commands.py       # CLI: load_boardgames, create_first_superuser
+│   ├── swagger.py            # Шаблон спецификации Swagger (схемы, JWT-auth)
 │   ├── error_handlers.py     # Обработчики ошибок (403, 404, 500, InvalidAPIUsage)
 │   ├── templates/            # Jinja2-шаблоны (14 HTML-файлов)
 │   │   ├── base.html         # Базовый шаблон с Bootstrap 5 (CDN)
@@ -634,6 +647,7 @@ isort .
 | [Flask-Login](https://flask-login.readthedocs.io/) | Управление сессиями пользователей |
 | [Flask-WTF](https://flask-wtf.readthedocs.io/) | Формы и CSRF-защита |
 | [Flask-JWT-Extended](https://flask-jwt-extended.readthedocs.io/) | JWT-аутентификация |
+| [flasgger](https://github.com/flasgger/flasgger) | Интерактивная Swagger UI-документация |
 | [SQLAlchemy](https://www.sqlalchemy.org/) | SQL-конвейер и ORM |
 | [SQLite](https://www.sqlite.org/) | Локальная база данных |
 | [WTForms](https://wtforms.readthedocs.io/) | Валидация форм |
